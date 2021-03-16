@@ -1,6 +1,6 @@
-;Archivo:	LAB05.s
+;Archivo:	LAB05.s 
 ;Dispositivo:	PIC16F887
-;Autor:		Brayan Castillo
+;Autor:		Brayan Castillo Alvarado
 ;Compilador:	pic-as (v2.30), MPLABX V5.45
 ;
 ;Programa:	Displays simultáneos con interrupciones
