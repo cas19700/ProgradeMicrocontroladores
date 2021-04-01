@@ -32,35 +32,51 @@ PROCESSOR 16F887
   
 rst_tmr0 macro			;Macro para el reset del timer
     banksel PORTA		
-    movlw   217		;10ms 
+    movlw   247	    	;10ms 
     movwf   TMR0
     bcf	    T0IF 
     endm
     
 rst_tmr1 macro
     banksel PORTA
-    movlw   0xB8	
-    movwf   TMR1L
-    movlw   0x0B
-    movwf   TMR1H
-    bcf	    PIR1, 0
+    movlw   0xDC	;0.5 segundos para el timer1
+    movwf   TMR1L	;Primeros 8 bits
+    movlw   0x0B	
+    movwf   TMR1H	;Ultimos 8 bits
+    bcf	    TMR1IF	;Limpiamos la bandera
     endm
     
-MODE	EQU 0		;RB0
-UP	EQU 1		;RB1
-DOWN	EQU 2		;RB2
-V1	EQU 15		;Valor inicial semaforo 
+MODE	EQU 4		;RB0
+UP	EQU 5		;RB1
+DOWN	EQU 6		;RB2
+
 
 PSECT udata_bank0
-  var1:		DS  1	;Variable para el contador
-  var2:		DS  1	;Variable para el contador
-  var3:		DS  1	;Variable para el contador
-  band:		DS  2	;Variable para las banderas
+  vartmr1:	DS  1	;Variable para 1 segundo
+  vartmr2:	DS  1	;Variable para 1 segundo
+  varcont:	DS  1	;Variable para el contador
+  varcont2:	DS  1	;Variable para el contador
+  band:		DS  1	;Variable para las banderas
+  display_var:	DS  6	;Variable para el display
+  dece:		DS  1	;Variable para la decena
+  dece1:	DS  1	;Variable para la decena
+  dece2:	DS  1	;Variable para la decena
+  dece3:	DS  1	;Variable para la decena
+  uni:		DS  1	;Variable para unidad
+  uni1:		DS  1	;Variable para unidad
+  uni2:		DS  1	;Variable para unidad
+  uni3:		DS  1	;Variable para unidad
+  div:		DS  1	;Variable para dividir
+  vard:		DS  1	;Variable para display
+  v1:		DS  1	;Valor inicial 1
+  v2:		DS  1	;Valor inicial 2
+  v3:		DS  1	;Valor inicial 3
+
+
   sem1:		DS  2	;Variable para el nibble
   sem2:		DS  2	;Variable para el nibble
   sem3:		DS  2	;Variable para el nibble
-  display_var:	DS  5	;Variable para el display
-  vartmr1:	DS  1	;Variable para el contador del timer1
+
   
     
 PSECT udata_shr  
@@ -87,8 +103,11 @@ isr:
     btfsc   T0IF	;Si esta en cero saltar la instruccion de abajo
     call    int_tmr0	;Llamar la subrutina de la interrupcion del timer0
     
-    btfsc   RBIF	;Si esta en cero saltar la instruccion de abajo
-    call    PB_int	;Llamar la subrutina de los interrupciones en puerto B
+    btfsc   TMR1IF	;Si esta en cero saltar la instruccion de abajo
+    call    int_tmr1	;Llamar la subrutina de la interrpucion del timer1
+    
+    ;btfsc   RBIF	;Si esta en cero saltar la instruccion de abajo
+    ;call    PB_int	;Llamar la subrutina de los interrupciones en puerto B
   
     
 pop:
@@ -120,26 +139,14 @@ int_tmr0:
     btfss   band, 5
     goto    display_5
     
-    btfss   band, 6
-    goto    display_6
-
-int_tmr1:
-    rst_tmr1
-    incf    vartmr1
-    movf    vartmr1, w
-    sublw   2
-    btfss   ZERO
-    goto    rtrn_tmr1
-    clrf    vartmr1
-    incf    PORTD
-    bcf	    TMR1IF
-    
+ ;   btfss   band, 6
+;    goto    display_6
 display_0:
     clrf    band		;Limpiar banderas cada vez que se empieza	
     bsf	    band, 0		;Lo volvemos 1 para pasar de instrucción
     movf    display_var+0, w	;Movemos el nibble a w
     movwf   PORTC		;Movemos w al puerto C
-    bsf	    PORTD, 1		;Encendemos el bit 1 del puerto D
+    bsf	    PORTD, 0		;Encendemos el bit 1 del puerto D
     
     return
    
@@ -148,7 +155,7 @@ display_1:
     bsf	    band, 1		;Volvemos 1 para pasar la instrucción
     movf    display_var+1, w	;Movemos el nibble a w
     movwf   PORTC		;Movemos w al puerto C
-    bsf	    PORTD, 0		;Encendemos el bit 0 del puerto D
+    bsf	    PORTD, 1		;Encendemos el bit 0 del puerto D
     
     return
     
@@ -188,17 +195,86 @@ display_5:
     
     return
  
-display_6:
+;display_6:
   
-    bsf	    band, 6		;Volvemos 1 para pasar la instrucción
-    movf    display_var+6, w	;Movemos el nibble a w
-    movwf   PORTC		;Encendemos w al puerto C
-    bsf	    PORTD, 6		;Encendemos el bit 4 del puerto D
+ ;   bsf	    band, 6		;Volvemos 1 para pasar la instrucción
+  ;  movf    display_var+6, w	;Movemos el nibble a w
+   ; movwf   PORTC		;Encendemos w al puerto C
+   ; bsf	    PORTD, 6		;Encendemos el bit 4 del puerto D
     
-    return
     
-
-
+    ;return
+    
+int_tmr1:
+    rst_tmr1			;Reseteamos el timer1
+    clrf    varcont
+    movf    sem1, w
+    addwf   sem2, w
+    addwf   sem3, w
+    movwf   varcont
+    incf    vartmr1		;Incrementamos la variable del timer1
+    movf    vartmr1, w		;Movemos la variable a w
+    sublw   2			;Le restamos dos veces para poder tener 1seg
+    btfss   ZERO		;Si esta en 1 saltar la instrucción de abajo
+    goto    rtrn_tmr1		;Regresar
+    clrf    vartmr1		;Limpiar la variable 
+    movf    varcont, w		;Mover la variable del contador a w
+    subwf   sem2, w
+    subwf   sem3, w    ;Restarle 99 para que no pase el limite
+    btfss   CARRY		;Si la resta da 0 saltar la instrucción 
+    goto    Sem1
+    goto    Sem2o3
+    
+Sem2o3:
+    
+    movwf   varcont
+    movf    varcont, w		;Mover la variable del contador a w
+    addwf   sem2
+    addwf   sem3
+    subwf   sem2			;Restarle 99 para que no pase el limite
+    btfss   CARRY		;Si la resta da 0 saltar la instrucción 
+    goto    Sem2
+    goto    Sem3
+Sem1:
+    movf    sem1, w		;Mover la variable del contador a w
+    ;sublw   0			;Restarle 99 para que no pase el limite
+    btfss   ZERO		;Si la resta da 0 saltar la instrucción 
+    goto    R1		;Decrementar la variable del contador
+    btfsc   ZERO		;Si la resta no da 0 no realizar la instrucción
+    movf    v1, w
+    movwf   sem1
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 2
+    bsf	    PORTA, 3
+    bsf	    PORTA, 6
+    goto    pop
+R1:
+    decf    sem1
+    goto    pop
+Sem2:
+    decf    sem2
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 0
+    bsf	    PORTA, 5
+    bsf	    PORTA, 6
+    goto    pop
+Sem3:
+    movwf   varcont
+    movf    varcont, w		;Mover la variable del contador a w
+    addlw   20
+    decf    sem3
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 0
+    bsf	    PORTA, 3
+    bsf	    PORTB, 3
+    goto    pop
+ 
+rtrn_tmr1:
+    return			;Regresar
+    
 PB_int:
     banksel PORTA
     btfss   PORTB, UP	    ;Si esta encendido saltar la instruccion
@@ -245,7 +321,7 @@ main:
     clrf    ANSELH
    
     banksel TRISA	
-    movlw   11100000B ;Declaramos 3 bits del puerto B como entradas
+    movlw   01110000B ;Declaramos 3 bits del puerto B como entradas
     movwf   TRISB
     clrf    TRISD     ;Declaramos el puerto D como bits de salida
     clrf    TRISC     ;Declaramos el puerto C como bits de salida
@@ -254,11 +330,12 @@ main:
     
     bcf	    OPTION_REG, 7   ;Habilitar Pullups
     bsf	    WPUB, MODE
-    ;bsf	    WPUB, UP
-    ;bsf	    WPUB, DOWN
+    bsf	    WPUB, UP
+    bsf	    WPUB, DOWN
    
     
     banksel PORTB     ;Borramos cualquier dato en los puertos y las variables
+    clrf    PORTB
     clrf    PORTA
     clrf    PORTC
     clrf    PORTD
@@ -267,72 +344,86 @@ main:
     call conf_int
     call conf_PB
     call conf_tmr0
-    movlw   0x0e
-    movwf   var1
-    movlw   0x0e
-    movwf   var2
-    movlw   0x0e
-    movwf   var3
+    call conf_tmr1
     banksel PORTA
+   
+    movlw   0x0E
+    movwf   v1
+    movf    v1, w
+    movwf   sem1
+    
+    movlw   0x0E
+    movwf   v2
+    movf    v2, w
+    movwf   sem2
+    
+    movlw   0x0E
+    movwf   v3
+    movf    v3, w
+    movwf   sem3
+
+    
+    clrf    varcont
+    
    
 ;-----------------loop principal---------------------------
 loop:
     
     ;call    sep_nibbles	    ;Llamamos a separar los nibles
-    ;call    pp_display	    ;Llamamos a preparar display
-  
-    call decs1
-    call delay_big
+    call    pp_display	    ;Llamamos a preparar display
+    movf    sem1, w	    ;Movemos el valor de la variable a w
+    movwf   div		    ;Movemos el valor a la variable div
+    call    div_10	    ;Llamamos la division por 10
+    movf    dece, w	    ;Movemos la decena a w
+    movwf   dece1
+    call    div_1	    ;Llamamos la division por 1
+    movf    uni, w	    ;Movemos la unidad a w
+    movwf   uni1
+    
+    movf    sem2, w	    ;Movemos el valor de la variable a w
+    movwf   div		    ;Movemos el valor a la variable div
+    call    div_10	    ;Llamamos la division por 10
+    movf    dece, w	    ;Movemos la decena a w
+    movwf   dece2
+    call    div_1	    ;Llamamos la division por 1
+    movf    uni, w	    ;Movemos la unidad a w
+    movwf   uni2
+    
+    movf    sem3, w	    ;Movemos el valor de la variable a w
+    movwf   div		    ;Movemos el valor a la variable div
+    call    div_10	    ;Llamamos la division por 10
+    movf    dece, w	    ;Movemos la decena a w
+    movwf   dece3
+    call    div_1	    ;Llamamos la division por 1
+    movf    uni, w	    ;Movemos la unidad a w
+    movwf   uni3
+   
 	
     goto    loop
 
 ;-----------------sub rutinas------------------------------
-sep_nibbles:
-    movf    var1, w	;Movemos la variable a w
-    andlw   0x0f	;Realizamos un and con una literal
-    movwf   sem1	;Movemos w al primer nibble
-    swapf   var1, w	;Hacemos un swap para cambiar los nibbles
-    andlw   0x0f	;Realizamos un and con la literal
-    movwf   sem1+1	;Movemos w al segundo nibble
-    
-    movf    var2, w	;Movemos la variable a w
-    andlw   0x0f	;Realizamos un and con una literal
-    movwf   sem2	;Movemos w al primer nibble
-    swapf   var2, w	;Hacemos un swap para cambiar los nibbles
-    andlw   0x0f	;Realizamos un and con la literal
-    movwf   sem2+1	;Movemos w al segundo nibble
-    
-    movf    var3, w	;Movemos la variable a w
-    andlw   0x0f	;Realizamos un and con una literal
-    movwf   sem3	;Movemos w al primer nibble
-    swapf   var3, w	;Hacemos un swap para cambiar los nibbles
-    andlw   0x0f	;Realizamos un and con la literal
-    movwf   sem3+1	;Movemos w al segundo nibble
-    
-    return
-
 pp_display:
-    movf    sem1, w	    ;El nibble lo movemos a w 
+    movf    dece1, w	    ;El nibble lo movemos a w 
     call    Tabla	    ;Llamamos a la tabla para tenerlo en hexadecimal
     movwf   display_var	    ;Lo movemos a la variable de display nibble 0
     
-    movf    sem1+1, w	    ;El nibble lo movemos a w 
+    movf    uni1, w	    ;El nibble lo movemos a w 
     call    Tabla	    ;Llamamos a la tabla para tenerlo en hexadecimal
     movwf   display_var+1   ;Lo movemos a la variable de display nibble 1
     
-    movf    sem2, w	    ;La variable centena la movemos a w 
+    movf    dece2, w	    ;La variable centena la movemos a w 
     call    Tabla	    ;Llamamos a la tabla para tenerlo en hexadecimal
     movwf   display_var+2   ;Lo movemos a la variable de display nibble 2
     
-    movf    sem2+1, w	    ;La variable decena lo movemos a w 
+    movf    uni2, w	    ;La variable decena lo movemos a w 
     call    Tabla	    ;Llamamos a la tabla para tenerlo en hexadecimal
     movwf   display_var+3   ;Lo movemos a la variable de display nibble 3
     
-    movf    sem3, w	    ;La variable unidad la movemos a w
+    movf    dece3, w	    ;La variable unidad la movemos a w
     call    Tabla	    ;Llamamos a la tabla para tenerlo en hexadecimal
     movwf   display_var+4   ;Lo movemos a la variable de display nibble 4
     
-    movf    sem3+1, w	    ;La variable unidad la movemos a w
+    movf    uni3, w	    ;La variable unidad la movemos a w
     call    Tabla	    ;Llamamos a la tabla para tenerlo en hexadecimal
     movwf   display_var+5   ;Lo movemos a la variable de display nibble 4
     
@@ -355,7 +446,11 @@ conf_int:
     bsf	    T0IE    ;Actimavos la interrupcion del timer0
     bcf	    T0IF    ;Limpieamos la bandera
     
+    bsf	    TMR1IE  ;Activamos la interrupcion del timer1
+    bcf	    TMR1IF  ;Limpiamos la bandera
+    
     return
+
     
 conf_PB:
     banksel TRISA
@@ -382,7 +477,7 @@ conf_tmr0:
 
 conf_tmr1:
     banksel	TRISA
-    bsf		PIE1, 0
+    bsf		PIE1, 0	 ;Activamos la interrupción
     banksel	T1CON
     bcf		T1CON, 1 ;Utilizamos el reloj interno
     bsf		T1CON, 5 ;Prescaler en 1:8
@@ -390,48 +485,35 @@ conf_tmr1:
     bcf		T1CON, 3 ;Oscilador apagado
     bcf		T1CON, 2 ;El timer1 va a usar el reloj interno
     bsf		T1CON, 0 ;Encender el timer1
-    rst_timer1
+    rst_tmr1		 ;Reseteamos el timer1
     return
     
+div_10:
+    clrf    dece    ;Limpiar la variable decenas
+    movlw   10	    ;Mover la literal a w
+    subwf   div, f  ;Restarle a la variable w
+    btfsc   CARRY   ;Si CARRY esta en cero saltarse la instrucción de abajo
+    incf    dece    ;Incrementar la variable decena
+    btfsc   CARRY   ;Si CARRY esta en cero saltarse la instrucción de abajo
+    goto    $-5	    ;Regresar 5 lineas
+    movlw   10	    ;Mover la literal a w
+    addwf   div, f  ;Sumarle a la variable w
     
-delay_big:
-    movlw   200		    ;valor inicial del contador
-    movwf   cont_big	
-    call    delay_small	    ;rutina de delay
-    decfsz  cont_big, 1	    ;decrementar el contador
-    goto    $-2		    ;ejecutar dos lineas atrás
     return
-    
-delay_small:
-    movlw   249		    ;valor inicial del contador
-    movwf   cont_small	
-    decfsz  cont_small,	1   ;decrementar el contador
-    goto    $-1		    ;ejecutar la linea anterior
-    return   
 
-decs1:
+div_1:
+    clrf    uni	    ;Limpiar la variable unidad
+    movlw   1	    ;Mover la literal a w
+    subwf   div, f  ;Restarle a la variable w
+    btfsc   CARRY   ;Si CARRY esta en cero saltarse la instrucción de abajo
+    incf    uni	    ;Incrementar la variable unidad
+    btfsc   CARRY   ;Si CARRY esta en cero saltarse la instrucción de abajo
+    goto    $-5	    ;Regresar 5 lineas
+    movlw   1	    ;Mover la literal a w   
+    addwf   div, f  ;Sumarle a la variable w
     
-    movlw   3
-    subwf   var1, f
-    btfsc   CARRY
+    return  
     
-    clrf    luz1	
-    movlw   6		
-    subwf   var1, f	
-    btfsc   CARRY	
-    bsf	    PORTA, 2    
-    btfsc   CARRY	
-    bcf	    PORTA, 1	
-    btfsc   CARRY	
-    bcf	    PORTA, 0	
-    btfsc   CARRY	
-    decf    var1	
-    movlw   100		
-    addwf   div, f	
-    
-    
-    decf    var1
-    return
     
 END
 
