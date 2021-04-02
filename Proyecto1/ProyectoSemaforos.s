@@ -46,6 +46,15 @@ rst_tmr1 macro
     bcf	    TMR1IF	;Limpiamos la bandera
     endm
     
+rst_tmr2 macro 
+    banksel TRISA
+    movlw   0xF4	;PR2 en 244 0,0625
+    movwf   PR2
+    banksel PORTA
+    clrf    TMR2	;Limpiar el timer2
+    bcf	    TMR2IF	;Limpiamos la bandera
+endm
+    
 MODE	EQU 4		;RB0
 UP	EQU 5		;RB1
 DOWN	EQU 6		;RB2
@@ -76,8 +85,6 @@ PSECT udata_bank0
   sem1:		DS  2	;Variable para el nibble
   sem2:		DS  2	;Variable para el nibble
   sem3:		DS  2	;Variable para el nibble
-
-  
     
 PSECT udata_shr  
   wtmp:	    DS	1    ;1 byte
@@ -105,6 +112,9 @@ isr:
     
     btfsc   TMR1IF	;Si esta en cero saltar la instruccion de abajo
     call    int_tmr1	;Llamar la subrutina de la interrpucion del timer1
+    
+    btfsc   TMR2IF	;Si esta en cero saltar la instruccion de abajo
+    call    int_tmr2	;Llamar la subrutina de la interrpucion del timer2
     
     ;btfsc   RBIF	;Si esta en cero saltar la instruccion de abajo
     ;call    PB_int	;Llamar la subrutina de los interrupciones en puerto B
@@ -207,72 +217,154 @@ display_5:
     
 int_tmr1:
     rst_tmr1			;Reseteamos el timer1
-    clrf    varcont
-    movf    sem1, w
-    addwf   sem2, w
-    addwf   sem3, w
-    movwf   varcont
     incf    vartmr1		;Incrementamos la variable del timer1
     movf    vartmr1, w		;Movemos la variable a w
     sublw   2			;Le restamos dos veces para poder tener 1seg
     btfss   ZERO		;Si esta en 1 saltar la instrucción de abajo
     goto    rtrn_tmr1		;Regresar
     clrf    vartmr1		;Limpiar la variable 
-    movf    varcont, w		;Mover la variable del contador a w
-    subwf   sem2, w
-    subwf   sem3, w    ;Restarle 99 para que no pase el limite
-    btfss   CARRY		;Si la resta da 0 saltar la instrucción 
+    movf    sem1, w
+    btfss   ZERO		;Si la resta da 0 saltar la instrucción 
     goto    Sem1
     goto    Sem2o3
+
+rtrn_tmr1:
+    return			;Regresar   
     
 Sem2o3:
-    
-    movwf   varcont
-    movf    varcont, w		;Mover la variable del contador a w
-    addwf   sem2
-    addwf   sem3
-    subwf   sem2			;Restarle 99 para que no pase el limite
-    btfss   CARRY		;Si la resta da 0 saltar la instrucción 
+    movf    sem2, w		;Mover la variable del contador a w
+    btfss   ZERO		;Si la resta da 0 saltar la instrucción 
     goto    Sem2
     goto    Sem3
+    
 Sem1:
     movf    sem1, w		;Mover la variable del contador a w
-    ;sublw   0			;Restarle 99 para que no pase el limite
     btfss   ZERO		;Si la resta da 0 saltar la instrucción 
-    goto    R1		;Decrementar la variable del contador
-    btfsc   ZERO		;Si la resta no da 0 no realizar la instrucción
-    movf    v1, w
-    movwf   sem1
+    decf    sem1		;Decrementar la variable del contador
+    movf    sem1, w
+    sublw   6
+    btfss   CARRY
+    goto    verde1
+    goto    verdet1
+verde1:    
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 2
     bsf	    PORTA, 3
     bsf	    PORTA, 6
     goto    pop
-R1:
-    decf    sem1
+    
+verdet1:
+    btfss   PORTA, 2
+    goto    encender1
+    goto    apagar1
+    
+encender1:
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 2
+    bsf	    PORTA, 3
+    bsf	    PORTA, 6
+    bcf	    vard, 0
     goto    pop
+
+apagar1:
+    clrf    PORTA
+    clrf    PORTB
+    bcf	    PORTA, 2
+    bsf	    PORTA, 3
+    bsf	    PORTA, 6
+    bsf	    vard, 0
+    goto    pop
+
+    
 Sem2:
+    movf    sem2, w		;Mover la variable del contador a w
+    btfss   ZERO
     decf    sem2
+    movf    sem2, w
+    sublw   6
+    btfss   CARRY
+    goto    verde2
+    goto    verdet2
+    
+    
+    goto    pop
+
+verde2:    
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 0
     bsf	    PORTA, 5
     bsf	    PORTA, 6
     goto    pop
+    
+verdet2:
+    btfss   PORTA, 5
+    goto    encender2
+    goto    apagar2
+    
+encender2:
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 0
+    bsf	    PORTA, 5
+    bsf	    PORTA, 6
+    bcf	    vard, 0
+    goto    pop
+
+apagar2:
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 0
+    bcf	    PORTA, 5
+    bsf	    PORTA, 6
+    bsf	    vard, 0
+    goto    pop
+    
 Sem3:
-    movwf   varcont
-    movf    varcont, w		;Mover la variable del contador a w
-    addlw   20
+    
+    movf    sem3, w		;Mover la variable del contador a w
+    btfss   ZERO
     decf    sem3
+    btfsc   ZERO
+    goto    reinicio
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 0
     bsf	    PORTA, 3
     bsf	    PORTB, 3
     goto    pop
- 
-rtrn_tmr1:
+
+reinicio:
+    movf    v1, w
+    movwf   sem1
+    movf    v2, w
+    movwf   sem2
+    movf    v3, w
+    movwf   sem3
+    goto    pop
+
+int_tmr2:
+    rst_tmr2			;Resetear el timer2
+    incf    vartmr2		;Incrementar la variable del timer2
+    movf    vartmr2, w		;Mover la variable a w
+    sublw   4			;Restarle 4 para hacer 250ms*4 para 1 segundo
+    btfss   ZERO		;Si esta en 1 saltar la instrucción de abajo
+    goto    rtrn_tmr2		;Regresar
+    clrf    vartmr2		;Limpiar la variable del timer2
+    btfsc   PORTA, 0		;Si el bit esta en 0 saltar la instrucción
+    goto    apagar		;Ir a la instrucción de apagar
+    
+encender:
+    bsf	    PORTA, 0		;Encender el primer bit del puerto A
+    bcf	    vard, 0		;Apagar la variable para controlar el display
+    goto    pop			;Regresar
+apagar:
+    bcf	    PORTA, 0		;Apagar el primer bit del puerto A
+    bsf     vard, 0		;Encender la variable para controlar el display
+    return
+rtrn_tmr2:
     return			;Regresar
     
 PB_int:
@@ -369,8 +461,11 @@ main:
 ;-----------------loop principal---------------------------
 loop:
     
-    ;call    sep_nibbles	    ;Llamamos a separar los nibles
     call    pp_display	    ;Llamamos a preparar display
+    ;btfsc   vard, 0	    ;Si la variable no esta en cero limpiar el puerto
+    ;bcf    PORTD, 1
+    ;btfsc   vard, 0	    ;Si la variable no esta en cero limpiar el puerto
+    ;clrf    PORTC
     movf    sem1, w	    ;Movemos el valor de la variable a w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
@@ -449,6 +544,8 @@ conf_int:
     bsf	    TMR1IE  ;Activamos la interrupcion del timer1
     bcf	    TMR1IF  ;Limpiamos la bandera
     
+    bsf	    TMR2IE  ;Activamos la interrupcion del timer2
+    bcf	    TMR2IF  ;Limpiamos la bandera
     return
 
     
@@ -476,8 +573,6 @@ conf_tmr0:
     return
 
 conf_tmr1:
-    banksel	TRISA
-    bsf		PIE1, 0	 ;Activamos la interrupción
     banksel	T1CON
     bcf		T1CON, 1 ;Utilizamos el reloj interno
     bsf		T1CON, 5 ;Prescaler en 1:8
@@ -486,6 +581,17 @@ conf_tmr1:
     bcf		T1CON, 2 ;El timer1 va a usar el reloj interno
     bsf		T1CON, 0 ;Encender el timer1
     rst_tmr1		 ;Reseteamos el timer1
+    return
+
+conf_tmr2:
+    banksel	T2CON
+    bsf		T2CON, 3 ;Activamos el timer2
+    bsf		T2CON, 4 ;Configuramos el postscaler en 1:16
+    bsf		T2CON, 5
+    bsf		T2CON, 6
+    bsf		T2CON, 1 ;Configuramso el prescaler en 16
+    bsf		T2CON, 2
+    rst_tmr2		 ;Reseteamos el timer2
     return
     
 div_10:
