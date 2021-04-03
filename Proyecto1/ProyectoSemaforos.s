@@ -80,6 +80,9 @@ PSECT udata_bank0
   v1:		DS  1	;Valor inicial 1
   v2:		DS  1	;Valor inicial 2
   v3:		DS  1	;Valor inicial 3
+  D1:		DS  1	;Variable display
+  pv:		DS  1	;Primera vez
+
 
 
   sem1:		DS  2	;Variable para el nibble
@@ -113,8 +116,8 @@ isr:
     btfsc   TMR1IF	;Si esta en cero saltar la instruccion de abajo
     call    int_tmr1	;Llamar la subrutina de la interrpucion del timer1
     
-    btfsc   TMR2IF	;Si esta en cero saltar la instruccion de abajo
-    call    int_tmr2	;Llamar la subrutina de la interrpucion del timer2
+    ;btfsc   TMR2IF	;Si esta en cero saltar la instruccion de abajo
+    ;call    int_tmr2	;Llamar la subrutina de la interrpucion del timer2
     
     ;btfsc   RBIF	;Si esta en cero saltar la instruccion de abajo
     ;call    PB_int	;Llamar la subrutina de los interrupciones en puerto B
@@ -217,6 +220,7 @@ display_5:
     
 int_tmr1:
     rst_tmr1			;Reseteamos el timer1
+    bcf    ZERO
     incf    vartmr1		;Incrementamos la variable del timer1
     movf    vartmr1, w		;Movemos la variable a w
     sublw   2			;Le restamos dos veces para poder tener 1seg
@@ -241,85 +245,30 @@ Sem1:
     movf    sem1, w		;Mover la variable del contador a w
     btfss   ZERO		;Si la resta da 0 saltar la instrucción 
     decf    sem1		;Decrementar la variable del contador
-    movf    sem1, w
-    sublw   6
-    btfss   CARRY
-    goto    verde1
-    goto    verdet1
-verde1:    
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 2
     bsf	    PORTA, 3
     bsf	    PORTA, 6
+    bsf	    D1, 0
+    bcf	    D1, 1
+    bcf	    D1, 2
+    bsf	    D1, 3
     goto    pop
-    
-verdet1:
-    btfss   PORTA, 2
-    goto    encender1
-    goto    apagar1
-    
-encender1:
-    clrf    PORTA
-    clrf    PORTB
-    bsf	    PORTA, 2
-    bsf	    PORTA, 3
-    bsf	    PORTA, 6
-    bcf	    vard, 0
-    goto    pop
-
-apagar1:
-    clrf    PORTA
-    clrf    PORTB
-    bcf	    PORTA, 2
-    bsf	    PORTA, 3
-    bsf	    PORTA, 6
-    bsf	    vard, 0
-    goto    pop
-
     
 Sem2:
     movf    sem2, w		;Mover la variable del contador a w
     btfss   ZERO
     decf    sem2
-    movf    sem2, w
-    sublw   6
-    btfss   CARRY
-    goto    verde2
-    goto    verdet2
-    
-    
-    goto    pop
-
-verde2:    
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 0
     bsf	    PORTA, 5
     bsf	    PORTA, 6
-    goto    pop
-    
-verdet2:
-    btfss   PORTA, 5
-    goto    encender2
-    goto    apagar2
-    
-encender2:
-    clrf    PORTA
-    clrf    PORTB
-    bsf	    PORTA, 0
-    bsf	    PORTA, 5
-    bsf	    PORTA, 6
-    bcf	    vard, 0
-    goto    pop
-
-apagar2:
-    clrf    PORTA
-    clrf    PORTB
-    bsf	    PORTA, 0
-    bcf	    PORTA, 5
-    bsf	    PORTA, 6
-    bsf	    vard, 0
+    bcf	    D1, 0
+    bsf	    D1, 1
+    bcf	    D1, 2
+    bcf	    D1, 3
     goto    pop
     
 Sem3:
@@ -327,13 +276,20 @@ Sem3:
     movf    sem3, w		;Mover la variable del contador a w
     btfss   ZERO
     decf    sem3
-    btfsc   ZERO
-    goto    reinicio
+
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 0
     bsf	    PORTA, 3
     bsf	    PORTB, 3
+    bcf	    D1, 0
+    bcf	    D1, 1
+    bsf	    D1, 2
+    movf    sem3, w
+    btfsc   ZERO
+    goto    reinicio
+   ; movf    v1, w
+    ;movwf   sem1
     goto    pop
 
 reinicio:
@@ -343,6 +299,13 @@ reinicio:
     movwf   sem2
     movf    v3, w
     movwf   sem3
+    bsf	    D1, 0
+    bsf	    D1, 3
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 0
+    bsf	    PORTA, 3
+    bsf	    PORTB, 3
     goto    pop
 
 int_tmr2:
@@ -453,7 +416,8 @@ main:
     movwf   v3
     movf    v3, w
     movwf   sem3
-
+    bsf	    D1, 0
+    bsf	    D1, 3
     
     clrf    varcont
     
@@ -462,11 +426,12 @@ main:
 loop:
     
     call    pp_display	    ;Llamamos a preparar display
-    ;btfsc   vard, 0	    ;Si la variable no esta en cero limpiar el puerto
-    ;bcf    PORTD, 1
-    ;btfsc   vard, 0	    ;Si la variable no esta en cero limpiar el puerto
-    ;clrf    PORTC
+    btfsc   D1, 0
     movf    sem1, w	    ;Movemos el valor de la variable a w
+    btfss   D1, 0
+    movf    sem2, w
+    btfss   D1, 0
+    addwf   sem3, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -474,8 +439,19 @@ loop:
     call    div_1	    ;Llamamos la division por 1
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni1
+  
+    ;movf    pv
+    ;btfsc   ZERO
+    ;goto    sem2p
     
+    btfsc   D1, 1
     movf    sem2, w	    ;Movemos el valor de la variable a w
+    btfss   D1, 1
+    movf    v1, w
+    btfss   D1, 1
+    addwf   sem3, w
+    btfsc   D1, 3
+    movf    sem1, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -484,7 +460,18 @@ loop:
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni2
     
+    btfsc   D1, 2
     movf    sem3, w	    ;Movemos el valor de la variable a w
+    btfss   D1, 2
+    movf    sem1, w
+    btfss   D1, 2
+    addwf   sem2, w
+    btfsc   D1, 3
+    clrw    
+    btfsc   D1, 3
+    movf    sem1, w
+    btfsc   D1, 3
+    addwf   sem2, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
