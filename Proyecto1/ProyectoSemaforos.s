@@ -81,7 +81,7 @@ PSECT udata_bank0
   v2:		DS  1	;Valor inicial 2
   v3:		DS  1	;Valor inicial 3
   D1:		DS  1	;Variable display
-  pv:		DS  1	;Primera vez
+  verdet:	DS  2	;Variable del verde tintilante
 
 
 
@@ -116,8 +116,8 @@ isr:
     btfsc   TMR1IF	;Si esta en cero saltar la instruccion de abajo
     call    int_tmr1	;Llamar la subrutina de la interrpucion del timer1
     
-    ;btfsc   TMR2IF	;Si esta en cero saltar la instruccion de abajo
-    ;call    int_tmr2	;Llamar la subrutina de la interrpucion del timer2
+    btfsc   TMR2IF	;Si esta en cero saltar la instruccion de abajo
+    call    int_tmr2	;Llamar la subrutina de la interrpucion del timer2
     
     ;btfsc   RBIF	;Si esta en cero saltar la instruccion de abajo
     ;call    PB_int	;Llamar la subrutina de los interrupciones en puerto B
@@ -245,6 +245,10 @@ Sem1:
     movf    sem1, w		;Mover la variable del contador a w
     btfss   ZERO		;Si la resta da 0 saltar la instrucción 
     decf    sem1		;Decrementar la variable del contador
+    movf    sem1, w
+    sublw   5
+    btfsc   CARRY
+    goto    verdet1oamarillo
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 2
@@ -254,12 +258,55 @@ Sem1:
     bcf	    D1, 1
     bcf	    D1, 2
     bsf	    D1, 3
+    bcf	    verdet, 0
+    bcf	    verdet, 1
+    bcf	    verdet, 2
     goto    pop
+verdet1oamarillo:
+    movf    sem1, w
+    sublw   2
+    btfss   CARRY
+    goto    verdet1
+    goto    amarillo1
+verdet1:
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 2
+    bsf	    PORTA, 3
+    bsf	    PORTA, 6
+    bsf	    D1, 0
+    bcf	    D1, 1
+    bcf	    D1, 2
+    bsf	    D1, 3
+    bsf	    verdet, 0
+    bcf	    verdet, 1
+    bcf	    verdet, 2
+    retfie
+    
+amarillo1:
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 1
+    bsf	    PORTA, 3
+    bsf	    PORTA, 6
+    bsf	    D1, 0
+    bcf	    D1, 1
+    bcf	    D1, 2
+    bsf	    D1, 3
+    bcf	    verdet, 0
+    bcf	    verdet, 1
+    bcf	    verdet, 2
+    retfie
+    
     
 Sem2:
     movf    sem2, w		;Mover la variable del contador a w
     btfss   ZERO
     decf    sem2
+    movf    sem2, w
+    sublw   5
+    btfsc   CARRY
+    goto    verdet2oamarillo2
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 0
@@ -269,7 +316,50 @@ Sem2:
     bsf	    D1, 1
     bcf	    D1, 2
     bcf	    D1, 3
+    
+    bcf	    verdet, 0
+    bcf	    verdet, 1
+    bcf	    verdet, 2
     goto    pop
+    
+verdet2oamarillo2:
+    movf    sem2, w
+    sublw   2
+    btfss   CARRY
+    goto    verdet2
+    goto    amarillo2
+
+verdet2:
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 0
+    bsf	    PORTA, 5
+    bsf	    PORTA, 6
+    bcf	    D1, 0
+    bsf	    D1, 1
+    bcf	    D1, 2
+    bcf	    D1, 3
+    
+    bcf	    verdet, 0
+    bsf	    verdet, 1
+    bcf	    verdet, 2
+    retfie
+    
+amarillo2:
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 0
+    bsf	    PORTA, 4
+    bsf	    PORTA, 6
+    bcf	    D1, 0
+    bsf	    D1, 1
+    bcf	    D1, 2
+    bcf	    D1, 3
+    
+    bcf	    verdet, 0
+    bcf	    verdet, 1
+    bcf	    verdet, 2
+    retfie
     
 Sem3:
     
@@ -285,11 +375,12 @@ Sem3:
     bcf	    D1, 0
     bcf	    D1, 1
     bsf	    D1, 2
+    bcf	    verdet, 0
+    bcf	    verdet, 1
+    bsf	    verdet, 2
     movf    sem3, w
     btfsc   ZERO
     goto    reinicio
-   ; movf    v1, w
-    ;movwf   sem1
     goto    pop
 
 reinicio:
@@ -316,19 +407,38 @@ int_tmr2:
     btfss   ZERO		;Si esta en 1 saltar la instrucción de abajo
     goto    rtrn_tmr2		;Regresar
     clrf    vartmr2		;Limpiar la variable del timer2
-    btfsc   PORTA, 0		;Si el bit esta en 0 saltar la instrucción
-    goto    apagar		;Ir a la instrucción de apagar
+    goto    v123
     
-encender:
-    bsf	    PORTA, 0		;Encender el primer bit del puerto A
-    bcf	    vard, 0		;Apagar la variable para controlar el display
+v123:
+    btfsc   verdet, 0
+    goto    ve1
+;    btfsc   verdet, 1
+;    goto    ve2
+    retfie
+ve1:
+    btfsc   PORTA, 2
+    goto    off1
+    goto    on1
+on1:
+    bsf	    PORTA, 2		;Encender el primer bit del puerto A
     goto    pop			;Regresar
-apagar:
-    bcf	    PORTA, 0		;Apagar el primer bit del puerto A
-    bsf     vard, 0		;Encender la variable para controlar el display
-    return
+off1:
+    bcf	    PORTA, 2		;Apagar el primer bit del puerto A
+    goto    pop
+    
+ve2:
+    btfsc   PORTA, 5
+    goto    off2
+    goto    on2
+on2:
+    bsf	    PORTA, 5		;Encender el primer bit del puerto A
+    goto    pop			;Regresar
+off2:
+    bcf	    PORTA, 5		;Apagar el primer bit del puerto A
+    goto    pop
+    
 rtrn_tmr2:
-    return			;Regresar
+    retfie			;Regresar
     
 PB_int:
     banksel PORTA
@@ -400,6 +510,7 @@ main:
     call conf_PB
     call conf_tmr0
     call conf_tmr1
+    call conf_tmr2
     banksel PORTA
    
     movlw   0x0E
@@ -418,7 +529,6 @@ main:
     movwf   sem3
     bsf	    D1, 0
     bsf	    D1, 3
-    
     clrf    varcont
     
    
@@ -439,10 +549,6 @@ loop:
     call    div_1	    ;Llamamos la division por 1
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni1
-  
-    ;movf    pv
-    ;btfsc   ZERO
-    ;goto    sem2p
     
     btfsc   D1, 1
     movf    sem2, w	    ;Movemos el valor de la variable a w
