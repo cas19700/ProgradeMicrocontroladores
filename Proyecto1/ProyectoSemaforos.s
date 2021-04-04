@@ -81,7 +81,8 @@ PSECT udata_bank0
   v2:		DS  1	;Valor inicial 2
   v3:		DS  1	;Valor inicial 3
   D1:		DS  1	;Variable display
-  verdet:	DS  2	;Variable del verde tintilante
+  vt:		DS  2	;Variable del verde tintilante
+  ama:		DS  1	;Variable amarillo
   cont_small:	DS 2; 1 byte
   cont_big:	DS 2
 
@@ -251,6 +252,11 @@ Sem1:
     sublw   0
     btfss   CARRY		;Si la resta da 0 saltar la instrucción 
     decf    sem1		;Decrementar la variable del contador
+    movf    sem1, w
+    sublw   5
+    btfsc   CARRY
+    goto    verdet1
+    bcf	    ama, 2
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 2
@@ -261,11 +267,35 @@ Sem1:
     bcf	    D1, 2
     retfie
     
+verdet1:
+    
+    bsf	    vt,0
+    bcf	    vt,1
+    bcf	    vt,2
+    movf    sem1, w
+    sublw   2
+    btfsc   CARRY
+    call    am1
+    retfie
+am1:
+    bsf	    ama,0
+    bcf	    ama,1
+    bcf	    ama,2
+    bcf	    vt,0
+    bcf	    vt,1
+    bcf	    vt,2
+    return
+    
 Sem2:
     movf    sem2, w		;Mover la variable del contador a w
     sublw   0
     btfss   CARRY
     decf    sem2
+    movf    sem2, w
+    sublw   5
+    btfsc   CARRY
+    goto    verdet2
+    bcf	    ama, 0
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 0
@@ -276,12 +306,32 @@ Sem2:
     bcf	    D1, 2
     retfie
     
+verdet2:
+    bcf	    vt,0
+    bsf	    vt,1
+    bcf	    vt,2
+    movf    sem2, w
+    sublw   2
+    btfsc   CARRY
+    call    am2
+    retfie
+
+am2:
+    bcf	    ama, 0
+    bsf	    ama, 1
+    bcf	    ama, 2
+    bcf	    vt, 0
+    bcf	    vt, 1
+    bcf	    vt, 2
+    return
+    
 Sem3:
 
     movf    sem3, w		;Mover la variable del contador a w
     sublw   0
     btfss   CARRY
     decf    sem3
+    bcf	    ama, 1
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 0
@@ -294,10 +344,31 @@ Sem3:
     sublw   0
     btfsc   CARRY
     goto    reinicio
-   ; movf    v1, w
-    ;movwf   sem1
+    movf    sem3, w
+    sublw   5
+    btfsc   CARRY
+    goto    verdet3
+    retfie
+        
+verdet3:
+    bcf	    vt,0
+    bcf	    vt,1
+    bsf	    vt,2
+    movf    sem3, w
+    sublw   2
+    btfsc   CARRY
+    call    am3
     retfie
 
+am3:
+    bcf	    ama,0
+    bcf	    ama,1
+    bsf	    ama,2
+    bcf	    vt,0
+    bcf	    vt,1
+    bcf	    vt,2
+    return
+    
 reinicio:
     movf    v1, w
     movwf   sem1
@@ -314,9 +385,6 @@ reinicio:
     bsf	    PORTA, 3
     bsf	    PORTB, 3
     retfie
-
-
-
     
 PB_int:
     banksel PORTA
@@ -388,6 +456,7 @@ main:
     clrf    TRISD     ;Declaramos el puerto D como bits de salida
     clrf    TRISC     ;Declaramos el puerto C como bits de salida
     clrf    TRISA     ;Declaramos el puerto A como bits de salida
+    clrf    TRISE
     
     
     bcf	    OPTION_REG, 7   ;Habilitar Pullups
@@ -401,6 +470,7 @@ main:
     clrf    PORTA
     clrf    PORTC
     clrf    PORTD
+    clrf    PORTE
   
     call conf_reloj   ;Llamamos las configuraciones
     call conf_int
@@ -427,17 +497,18 @@ main:
     bsf	    D1, 0
     bcf	    D1, 1
     bcf	    D1, 2
+    bcf	    ama,0
+    bcf	    ama,1
+    bcf	    ama,2
    
     clrf    varcont
     
    
 ;-----------------loop principal---------------------------
 loop:
-    
-    
-    
-    
+   
     call    pp_display	    ;Llamamos a preparar display
+    call    v123
     btfsc   D1, 0
     movf    sem1, w	    ;Movemos el valor de la variable a w
     btfsc   D1, 1
@@ -485,7 +556,19 @@ loop:
     call    div_1	    ;Llamamos la division por 1
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni3
-;    call    v123
+    btfsc   ama, 0
+    bsf	    PORTA, 1
+    btfsc   ama, 0
+    bcf	    PORTA, 2
+    btfsc   ama, 1
+    bsf	    PORTA, 4
+    btfsc   ama, 1
+    bcf	    PORTA, 5
+    btfsc   ama, 2
+    bsf	    PORTA, 7
+    btfsc   ama, 2
+    bcf	    PORTB, 3
+    
 	
     goto    loop
 
@@ -613,53 +696,69 @@ div_1:
     
     return  
 
-;v123:
-;    btfsc   verdet, 0
-;    goto    ve1
-;    btfsc   verdet, 1
-;    goto    ve2
-;    retfie
-;ve1:
-;    btfsc   PORTA, 2
-;    goto    off1
-;    goto    on1
-;    return
-;on1:
-;    bsf	    PORTA, 2		;Encender el primer bit del puerto A
-;    call    delay_big
-;    return		;Regresar
-;off1:
-;    bcf	    PORTA, 2		;Apagar el primer bit del puerto A
-;    call    delay_big
-;    return
-;    
-;ve2:
-;    btfsc   PORTA, 5
-;    goto    off2
-;    goto    on2
-;    return
-;on2:
-;    bsf	    PORTA, 5		;Encender el primer bit del puerto A
-;    call    delay_big
-;    return			;Regresar
-;off2:
-;    bcf	    PORTA, 5		;Apagar el primer bit del puerto A
-;    call    delay_big
-;    return  
-;    
-;delay_big:
-;    movlw   1000		    ;valor inicial del contador
-;    movwf   cont_big	
-;    call    delay_small	    ;rutina de delay
-;    decfsz  cont_big, 1	    ;decrementar el contador
-;    goto    $-2		    ;ejecutar dos lineas atrás
-;    return
-;    
-;delay_small:
-;    movlw   246	    ;valor inicial del contador
-;    movwf   cont_small	
-;    decfsz  cont_small,	1   ;decrementar el contador
-;    goto    $-1		    ;ejecutar la linea anterior
-;    return
+v123:
+    btfsc   vt, 0
+    call    ve1
+    btfsc   vt, 1
+    call    ve2
+    btfsc   vt, 2
+    call    ve3
+    return
+ve1:
+    btfsc   PORTA, 2
+    call   off1
+    call    on1
+on1:
+    bsf	    PORTA, 2		;Encender el primer bit del puerto A
+    call    delay_big
+    return		;Regresar
+off1:
+    bcf	    PORTA, 2		;Apagar el primer bit del puerto A
+    call    delay_big
+    return
+    
+ve2:
+    btfsc   PORTA, 5
+    call    off2
+    call    on2
+    return
+on2:
+    bsf	    PORTA, 5		;Encender el primer bit del puerto A
+    call    delay_big
+    return			;Regresar
+off2:
+    bcf	    PORTA, 5		;Apagar el primer bit del puerto A
+    call    delay_big
+    return  
+ 
+    
+ve3:
+    btfsc   PORTB, 3
+    call    off3
+    call    on3
+    return
+on3:
+    bsf	    PORTB, 3		;Encender el primer bit del puerto A
+    call    delay_big
+    return			;Regresar
+off3:
+    bcf	    PORTB, 3		;Apagar el primer bit del puerto A
+    call    delay_big
+    return 
+    
+delay_big:
+    movlw   200		    ;valor inicial del contador
+    movwf   cont_big	
+    call    delay_small	    ;rutina de delay
+    decfsz  cont_big, 1	    ;decrementar el contador
+    goto    $-2		    ;ejecutar dos lineas atrás
+    return
+    
+delay_small:
+    movlw   246	    ;valor inicial del contador
+    movwf   cont_small	
+    decfsz  cont_small,	1   ;decrementar el contador
+    goto    $-1		    ;ejecutar la linea anterior
+    return
     
 END
