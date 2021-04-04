@@ -46,14 +46,14 @@ rst_tmr1 macro
     bcf	    TMR1IF	;Limpiamos la bandera
     endm
     
-rst_tmr2 macro 
-    banksel TRISA
-    movlw   0xF4	;PR2 en 244 0,0625
-    movwf   PR2
-    banksel PORTA
-    clrf    TMR2	;Limpiar el timer2
-    bcf	    TMR2IF	;Limpiamos la bandera
-endm
+;rst_tmr2 macro 
+;    banksel TRISA
+;    movlw   0xF4	;PR2 en 244 0,0625
+;    movwf   PR2
+;    banksel PORTA
+;    clrf    TMR2	;Limpiar el timer2
+;    bcf	    TMR2IF	;Limpiamos la bandera
+;endm
     
 MODE	EQU 4		;RB0
 UP	EQU 5		;RB1
@@ -82,12 +82,14 @@ PSECT udata_bank0
   v3:		DS  1	;Valor inicial 3
   D1:		DS  1	;Variable display
   verdet:	DS  2	;Variable del verde tintilante
+  cont_small:	DS 2; 1 byte
+  cont_big:	DS 2
 
 
 
-  sem1:		DS  2	;Variable para el nibble
-  sem2:		DS  2	;Variable para el nibble
-  sem3:		DS  2	;Variable para el nibble
+  sem1:		DS  1	;Variable para el nibble
+  sem2:		DS  1	;Variable para el nibble
+  sem3:		DS  1	;Variable para el nibble
     
 PSECT udata_shr  
   wtmp:	    DS	1    ;1 byte
@@ -116,8 +118,8 @@ isr:
     btfsc   TMR1IF	;Si esta en cero saltar la instruccion de abajo
     call    int_tmr1	;Llamar la subrutina de la interrpucion del timer1
     
-    btfsc   TMR2IF	;Si esta en cero saltar la instruccion de abajo
-    call    int_tmr2	;Llamar la subrutina de la interrpucion del timer2
+    ;btfsc   TMR2IF	;Si esta en cero saltar la instruccion de abajo
+    ;call    int_tmr2	;Llamar la subrutina de la interrpucion del timer2
     
     ;btfsc   RBIF	;Si esta en cero saltar la instruccion de abajo
     ;call    PB_int	;Llamar la subrutina de los interrupciones en puerto B
@@ -220,15 +222,15 @@ display_5:
     
 int_tmr1:
     rst_tmr1			;Reseteamos el timer1
-    bcf    ZERO
     incf    vartmr1		;Incrementamos la variable del timer1
     movf    vartmr1, w		;Movemos la variable a w
-    sublw   2			;Le restamos dos veces para poder tener 1seg
-    btfss   ZERO		;Si esta en 1 saltar la instrucción de abajo
+    sublw   1			;Le restamos dos veces para poder tener 1seg
+    btfsc   CARRY		;Si esta en 1 saltar la instrucción de abajo
     goto    rtrn_tmr1		;Regresar
     clrf    vartmr1		;Limpiar la variable 
     movf    sem1, w
-    btfss   ZERO		;Si la resta da 0 saltar la instrucción 
+    sublw   0
+    btfss   CARRY		;Si la resta da 0 saltar la instrucción 
     goto    Sem1
     goto    Sem2o3
 
@@ -237,18 +239,18 @@ rtrn_tmr1:
     
 Sem2o3:
     movf    sem2, w		;Mover la variable del contador a w
-    btfss   ZERO		;Si la resta da 0 saltar la instrucción 
+    sublw   0
+    btfss   CARRY		;Si la resta da 0 saltar la instrucción 
     goto    Sem2
     goto    Sem3
     
+
+    
 Sem1:
     movf    sem1, w		;Mover la variable del contador a w
-    btfss   ZERO		;Si la resta da 0 saltar la instrucción 
+    sublw   0
+    btfss   CARRY		;Si la resta da 0 saltar la instrucción 
     decf    sem1		;Decrementar la variable del contador
-    movf    sem1, w
-    sublw   5
-    btfsc   CARRY
-    goto    verdet1oamarillo
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 2
@@ -257,79 +259,13 @@ Sem1:
     bsf	    D1, 0
     bcf	    D1, 1
     bcf	    D1, 2
-    bsf	    D1, 3
-    bcf	    verdet, 0
-    bcf	    verdet, 1
-    bcf	    verdet, 2
-    goto    pop
-verdet1oamarillo:
-    movf    sem1, w
-    sublw   2
-    btfss   CARRY
-    goto    verdet1
-    goto    amarillo1
-verdet1:
-    clrf    PORTA
-    clrf    PORTB
-    bsf	    PORTA, 2
-    bsf	    PORTA, 3
-    bsf	    PORTA, 6
-    bsf	    D1, 0
-    bcf	    D1, 1
-    bcf	    D1, 2
-    bsf	    D1, 3
-    bsf	    verdet, 0
-    bcf	    verdet, 1
-    bcf	    verdet, 2
     retfie
-    
-amarillo1:
-    clrf    PORTA
-    clrf    PORTB
-    bsf	    PORTA, 1
-    bsf	    PORTA, 3
-    bsf	    PORTA, 6
-    bsf	    D1, 0
-    bcf	    D1, 1
-    bcf	    D1, 2
-    bsf	    D1, 3
-    bcf	    verdet, 0
-    bcf	    verdet, 1
-    bcf	    verdet, 2
-    retfie
-    
     
 Sem2:
     movf    sem2, w		;Mover la variable del contador a w
-    btfss   ZERO
-    decf    sem2
-    movf    sem2, w
-    sublw   5
-    btfsc   CARRY
-    goto    verdet2oamarillo2
-    clrf    PORTA
-    clrf    PORTB
-    bsf	    PORTA, 0
-    bsf	    PORTA, 5
-    bsf	    PORTA, 6
-    bcf	    D1, 0
-    bsf	    D1, 1
-    bcf	    D1, 2
-    bcf	    D1, 3
-    
-    bcf	    verdet, 0
-    bcf	    verdet, 1
-    bcf	    verdet, 2
-    goto    pop
-    
-verdet2oamarillo2:
-    movf    sem2, w
-    sublw   2
+    sublw   0
     btfss   CARRY
-    goto    verdet2
-    goto    amarillo2
-
-verdet2:
+    decf    sem2
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 0
@@ -338,35 +274,14 @@ verdet2:
     bcf	    D1, 0
     bsf	    D1, 1
     bcf	    D1, 2
-    bcf	    D1, 3
-    
-    bcf	    verdet, 0
-    bsf	    verdet, 1
-    bcf	    verdet, 2
-    retfie
-    
-amarillo2:
-    clrf    PORTA
-    clrf    PORTB
-    bsf	    PORTA, 0
-    bsf	    PORTA, 4
-    bsf	    PORTA, 6
-    bcf	    D1, 0
-    bsf	    D1, 1
-    bcf	    D1, 2
-    bcf	    D1, 3
-    
-    bcf	    verdet, 0
-    bcf	    verdet, 1
-    bcf	    verdet, 2
     retfie
     
 Sem3:
-    
-    movf    sem3, w		;Mover la variable del contador a w
-    btfss   ZERO
-    decf    sem3
 
+    movf    sem3, w		;Mover la variable del contador a w
+    sublw   0
+    btfss   CARRY
+    decf    sem3
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 0
@@ -375,13 +290,13 @@ Sem3:
     bcf	    D1, 0
     bcf	    D1, 1
     bsf	    D1, 2
-    bcf	    verdet, 0
-    bcf	    verdet, 1
-    bsf	    verdet, 2
     movf    sem3, w
-    btfsc   ZERO
+    sublw   0
+    btfsc   CARRY
     goto    reinicio
-    goto    pop
+   ; movf    v1, w
+    ;movwf   sem1
+    retfie
 
 reinicio:
     movf    v1, w
@@ -391,54 +306,17 @@ reinicio:
     movf    v3, w
     movwf   sem3
     bsf	    D1, 0
-    bsf	    D1, 3
+    bcf	    D1, 1
+    bcf	    D1, 2
     clrf    PORTA
     clrf    PORTB
     bsf	    PORTA, 0
     bsf	    PORTA, 3
     bsf	    PORTB, 3
-    goto    pop
-
-int_tmr2:
-    rst_tmr2			;Resetear el timer2
-    incf    vartmr2		;Incrementar la variable del timer2
-    movf    vartmr2, w		;Mover la variable a w
-    sublw   4			;Restarle 4 para hacer 250ms*4 para 1 segundo
-    btfss   ZERO		;Si esta en 1 saltar la instrucción de abajo
-    goto    rtrn_tmr2		;Regresar
-    clrf    vartmr2		;Limpiar la variable del timer2
-    goto    v123
-    
-v123:
-    btfsc   verdet, 0
-    goto    ve1
-;    btfsc   verdet, 1
-;    goto    ve2
     retfie
-ve1:
-    btfsc   PORTA, 2
-    goto    off1
-    goto    on1
-on1:
-    bsf	    PORTA, 2		;Encender el primer bit del puerto A
-    goto    pop			;Regresar
-off1:
-    bcf	    PORTA, 2		;Apagar el primer bit del puerto A
-    goto    pop
-    
-ve2:
-    btfsc   PORTA, 5
-    goto    off2
-    goto    on2
-on2:
-    bsf	    PORTA, 5		;Encender el primer bit del puerto A
-    goto    pop			;Regresar
-off2:
-    bcf	    PORTA, 5		;Apagar el primer bit del puerto A
-    goto    pop
-    
-rtrn_tmr2:
-    retfie			;Regresar
+
+
+
     
 PB_int:
     banksel PORTA
@@ -455,6 +333,26 @@ PB_int:
 PSECT code, delta=2, abs
 ORG 100h		    ; Posicion para el código
 Tabla:
+;    andlw   00001111B
+;    addwf   PCL
+;    retlw   00111111B	    ;0
+;    retlw   00000110B	    ;1
+;    retlw   01011011B	    ;2
+;    retlw   01001111B	    ;3
+;    retlw   01100110B	    ;4
+;    retlw   01101101B	    ;5
+;    retlw   01111101B	    ;6
+;    retlw   00000111B	    ;7
+;    retlw   01111111B	    ;8
+;    retlw   01101111B	    ;9
+;    retlw   01110111B	    ;A
+;    retlw   01111100B	    ;B
+;    retlw   00111001B	    ;C
+;    retlw   01011110B	    ;D
+;    retlw   01111001B	    ;E
+;    retlw   01110001B	    ;F
+;    retlw   0
+    
     clrf    PCLATH
     bsf	    PCLATH, 0	    ;PCLATH = 01
     andlw   0x0f
@@ -475,7 +373,6 @@ Tabla:
     retlw   01011110B	    ;D
     retlw   01111001B	    ;E
     retlw   01110001B	    ;F
-
     
     
     
@@ -510,7 +407,7 @@ main:
     call conf_PB
     call conf_tmr0
     call conf_tmr1
-    call conf_tmr2
+;    call conf_tmr2
     banksel PORTA
    
     movlw   0x0E
@@ -528,20 +425,27 @@ main:
     movf    v3, w
     movwf   sem3
     bsf	    D1, 0
-    bsf	    D1, 3
+    bcf	    D1, 1
+    bcf	    D1, 2
+   
     clrf    varcont
     
    
 ;-----------------loop principal---------------------------
 loop:
     
+    
+    
+    
     call    pp_display	    ;Llamamos a preparar display
     btfsc   D1, 0
     movf    sem1, w	    ;Movemos el valor de la variable a w
-    btfss   D1, 0
+    btfsc   D1, 1
     movf    sem2, w
-    btfss   D1, 0
+    btfsc   D1, 1
     addwf   sem3, w
+    btfsc   D1, 2
+    movf    sem3, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -550,14 +454,14 @@ loop:
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni1
     
+    btfsc   D1, 0
+    movf    sem1, w
     btfsc   D1, 1
     movf    sem2, w	    ;Movemos el valor de la variable a w
-    btfss   D1, 1
+    btfsc   D1, 2
     movf    v1, w
-    btfss   D1, 1
+    btfsc   D1, 2
     addwf   sem3, w
-    btfsc   D1, 3
-    movf    sem1, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -566,18 +470,14 @@ loop:
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni2
     
+    btfsc   D1, 0
+    movf    sem1, w	    ;Movemos el valor de la variable a w
+    btfsc   D1, 0
+    addwf   sem2, w
+    btfsc   D1, 1
+    movf    sem2, w
     btfsc   D1, 2
-    movf    sem3, w	    ;Movemos el valor de la variable a w
-    btfss   D1, 2
-    movf    sem1, w
-    btfss   D1, 2
-    addwf   sem2, w
-    btfsc   D1, 3
-    clrw    
-    btfsc   D1, 3
-    movf    sem1, w
-    btfsc   D1, 3
-    addwf   sem2, w
+    movf    sem3, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -585,7 +485,7 @@ loop:
     call    div_1	    ;Llamamos la division por 1
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni3
-   
+;    call    v123
 	
     goto    loop
 
@@ -676,16 +576,16 @@ conf_tmr1:
     rst_tmr1		 ;Reseteamos el timer1
     return
 
-conf_tmr2:
-    banksel	T2CON
-    bsf		T2CON, 3 ;Activamos el timer2
-    bsf		T2CON, 4 ;Configuramos el postscaler en 1:16
-    bsf		T2CON, 5
-    bsf		T2CON, 6
-    bsf		T2CON, 1 ;Configuramso el prescaler en 16
-    bsf		T2CON, 2
-    rst_tmr2		 ;Reseteamos el timer2
-    return
+;conf_tmr2:
+;    banksel	T2CON
+;    bsf		T2CON, 3 ;Activamos el timer2
+;    bsf		T2CON, 4 ;Configuramos el postscaler en 1:16
+;    bsf		T2CON, 5
+;    bsf		T2CON, 6
+;    bsf		T2CON, 1 ;Configuramso el prescaler en 16
+;    bsf		T2CON, 2
+;    rst_tmr2		 ;Reseteamos el timer2
+;    return
     
 div_10:
     clrf    dece    ;Limpiar la variable decenas
@@ -712,8 +612,54 @@ div_1:
     addwf   div, f  ;Sumarle a la variable w
     
     return  
-    
+
+;v123:
+;    btfsc   verdet, 0
+;    goto    ve1
+;    btfsc   verdet, 1
+;    goto    ve2
+;    retfie
+;ve1:
+;    btfsc   PORTA, 2
+;    goto    off1
+;    goto    on1
+;    return
+;on1:
+;    bsf	    PORTA, 2		;Encender el primer bit del puerto A
+;    call    delay_big
+;    return		;Regresar
+;off1:
+;    bcf	    PORTA, 2		;Apagar el primer bit del puerto A
+;    call    delay_big
+;    return
+;    
+;ve2:
+;    btfsc   PORTA, 5
+;    goto    off2
+;    goto    on2
+;    return
+;on2:
+;    bsf	    PORTA, 5		;Encender el primer bit del puerto A
+;    call    delay_big
+;    return			;Regresar
+;off2:
+;    bcf	    PORTA, 5		;Apagar el primer bit del puerto A
+;    call    delay_big
+;    return  
+;    
+;delay_big:
+;    movlw   1000		    ;valor inicial del contador
+;    movwf   cont_big	
+;    call    delay_small	    ;rutina de delay
+;    decfsz  cont_big, 1	    ;decrementar el contador
+;    goto    $-2		    ;ejecutar dos lineas atrás
+;    return
+;    
+;delay_small:
+;    movlw   246	    ;valor inicial del contador
+;    movwf   cont_small	
+;    decfsz  cont_small,	1   ;decrementar el contador
+;    goto    $-1		    ;ejecutar la linea anterior
+;    return
     
 END
-
-
