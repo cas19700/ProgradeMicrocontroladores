@@ -165,29 +165,6 @@ estado_2_int:
     Display nv2, EST2, EST0
     goto    pop
     
-;estado_2_int:
-;    btfss   PORTB, UP   
-;    incf    nv2
-;    movf    nv2, w
-;    sublw   21
-;    btfsc   ZERO
-;    movlw   10
-;    btfsc   ZERO
-;    movwf   nv2
-;
-;    btfss   PORTB, DOWN
-;    decf    nv2
-;    movf    nv2, w
-;    sublw   9
-;    btfsc   ZERO
-;    movlw   20
-;    btfsc   ZERO
-;    movwf   nv2
-;    btfss   PORTB, MODE
-;    bcf	    estado, 0
-;    bsf	    estado, 2
-;    bcf	    RBIF
-;    goto    pop
     
 pop:
     swapf   stmp, w	;Cambiar stmp con w
@@ -353,34 +330,9 @@ Sem2:
     sublw   0
     btfss   CARRY
     decf    sem2
-;    movf    sem2, w
-;    sublw   5
-;    btfsc   CARRY
-;    goto    verdet2
-;    bcf	    ama, 0
-;    clrf    PORTA
-;    bcf	    PORTB, 3
-;    bsf	    PORTA, 0
-;    bsf	    PORTA, 5
-;    bsf	    PORTA, 6
     bcf	    D1, 0
     bsf	    D1, 1
     retfie
-;    
-;verdet2:
-;    bsf	    vt,1
-;    movf    sem2, w
-;    sublw   2
-;    btfsc   CARRY
-;    call    am2
-;    retfie
-;
-;am2:
-;    bcf	    ama, 0
-;    bsf	    ama, 1
-;    bcf	    vt, 1
-;    bcf	    vard, 1
-;    return
     
 Sem3:
 
@@ -388,50 +340,10 @@ Sem3:
     sublw   0
     btfss   CARRY
     decf    sem3
-;    bcf	    ama, 1
-;    clrf    PORTA
-;    bcf	    PORTB, 3
-;    bsf	    PORTA, 0
-;    bsf	    PORTA, 3
-;    bsf	    PORTB, 3
     bcf	    D1, 1
     bsf	    D1, 2
-;    movf    sem3, w
-;    sublw   0
-;    btfsc   CARRY
-;    goto    reinicio
-;    movf    sem3, w
-;    sublw   5
-;    btfsc   CARRY
-;    goto    verdet3
     retfie
-;        
-;verdet3:
-;    bsf	    vt,2
-;    movf    sem3, w
-;    sublw   2
-;    btfsc   CARRY
-;    call    am3
-;    retfie
-;
-;am3:
-;    bcf	    ama,1
-;    bsf	    ama,2
-;    bcf	    vt,2
-;    bcf	    vard, 2
-;    return
-    
-;reinicio:
-;;    clrf    PORTA
-;;    bcf	    PORTB, 3
-;;    bsf	    PORTA, 0
-;;    bsf	    PORTA, 3
-;;    bsf	    PORTB, 3
-;    bsf	    of, 4
-;;    bcf	    D1, 0
-;;    bcf	    D1, 1
-;;    bsf	    D1, 2
-;    retfie
+
     
 PSECT code, delta=2, abs
 ORG 100h		    ; Posicion para el código
@@ -562,8 +474,6 @@ loop:
     movf    v1, w
     btfsc   D1, 2
     addwf   sem3, w
-;    btfsc   of, 4
-;    movf    sem2, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -611,8 +521,7 @@ loop:
     bcf	    PORTA, 7
     btfsc   ama, 2
     bcf	    PORTB, 3
-;    btfsc   of, 4
-;    call    rst
+
     
 ;revisar estado
     btfss   estado, 0
@@ -935,12 +844,6 @@ comp3:
     bsf	    PORTA, 0
     bsf	    PORTA, 3
     bsf	    PORTB, 3
-;    return
-;    movf    sem3, w
-;    sublw   0
-;    btfsc   CARRY
-;    call    rst
-    
     return
         
 verdet3:
@@ -962,14 +865,6 @@ am3:
     call    rst
     return
 rst:
-;    movf    v1, w
-;    movwf   sem1
-;    movf    v2, w
-;    movwf   sem2
-;    movf    v3, w
-;    movwf   sem3
     bsf	    of, 4
-;    bcf	    D1, 0
-;    bcf	    D1, 2
     return
 END
