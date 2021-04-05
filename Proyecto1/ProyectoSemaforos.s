@@ -45,19 +45,39 @@ rst_tmr1 macro
     movwf   TMR1H	;Ultimos 8 bits
     bcf	    TMR1IF	;Limpiamos la bandera
     endm
-    
-;rst_tmr2 macro 
-;    banksel TRISA
-;    movlw   0xF4	;PR2 en 244 0,0625
-;    movwf   PR2
-;    banksel PORTA
-;    clrf    TMR2	;Limpiar el timer2
-;    bcf	    TMR2IF	;Limpiamos la bandera
-;endm
+Display macro _nv, _estados0, _estados1
+
+    btfss   PORTB, UP   
+    incf    _nv
+    movf    _nv, w
+    sublw   21
+    btfsc   ZERO
+    movlw   10
+    btfsc   ZERO
+    movwf   _nv
+
+    btfss   PORTB, DOWN
+    decf    _nv
+    movf    _nv, w
+    sublw   9
+    btfsc   ZERO
+    movlw   20
+    btfsc   ZERO
+    movwf   _nv
+    btfss   PORTB, MODE
+    bsf	    estado, _estados0
+    bcf	    estado, _estados1
+    bcf	    RBIF
+endm
     
 MODE	EQU 4		;RB0
 UP	EQU 5		;RB1
 DOWN	EQU 6		;RB2
+EST0	EQU 0		;RB2
+EST1	EQU 1		;RB2
+EST2	EQU 2		;RB2
+EST3	EQU 3		;RB2
+EST4	EQU 4		;RB2
 
 
 PSECT udata_bank0
@@ -125,30 +145,47 @@ isr:
     
     btfss   estado, 0
     goto    estado_0_int
+    btfss   estado, 1
     goto    estado_1_int
+    btfss   estado, 2
+    goto    estado_2_int
+    
     
 estado_0_int:
     btfss   PORTB, MODE
     bsf	    estado, 0
+    bcf	    estado, 1
     bcf	    RBIF
     goto    pop
-    
-
 estado_1_int:
-    btfss   PORTB, UP
-    movf    nv1, w
-    sublw   20
-    btfss   CARRY
-    incf    nv1
-    ;btfsc   CARRY
-    ;movlw   10
-    ;movwf   nv1
-    btfss   PORTB, DOWN
-    decf    nv1
-    btfss   PORTB, MODE
-    bcf	    estado, 0
-    bcf	    RBIF
+    Display nv1, EST1, EST2
     goto    pop
+estado_2_int:
+    Display nv2, EST2, EST0
+    goto    pop
+;estado_2_int:
+;    btfss   PORTB, UP   
+;    incf    nv2
+;    movf    nv2, w
+;    sublw   21
+;    btfsc   ZERO
+;    movlw   10
+;    btfsc   ZERO
+;    movwf   nv2
+;
+;    btfss   PORTB, DOWN
+;    decf    nv2
+;    movf    nv2, w
+;    sublw   9
+;    btfsc   ZERO
+;    movlw   20
+;    btfsc   ZERO
+;    movwf   nv2
+;    btfss   PORTB, MODE
+;    bcf	    estado, 0
+;    bsf	    estado, 2
+;    bcf	    RBIF
+;    goto    pop
     
 pop:
     swapf   stmp, w	;Cambiar stmp con w
@@ -298,13 +335,10 @@ Sem1:
     bsf	    PORTA, 6
     bsf	    D1, 0
     bcf	    D1, 1
-    bcf	    D1, 2
     retfie
     
 verdet1:
     bsf	    vt,0
-    bcf	    vt,1
-    bcf	    vt,2
     movf    sem1, w
     sublw   2
     btfsc   CARRY
@@ -314,8 +348,6 @@ am1:
     bsf	    ama,0
     bcf	    ama,2
     bcf	    vt,0
-    bcf	    vt,1
-    bcf	    vt,2
     bcf	    vard, 0
     return
     
@@ -336,13 +368,10 @@ Sem2:
     bsf	    PORTA, 6
     bcf	    D1, 0
     bsf	    D1, 1
-    bcf	    D1, 2
     retfie
     
 verdet2:
-    bcf	    vt,0
     bsf	    vt,1
-    bcf	    vt,2
     movf    sem2, w
     sublw   2
     btfsc   CARRY
@@ -352,10 +381,7 @@ verdet2:
 am2:
     bcf	    ama, 0
     bsf	    ama, 1
-    
-    bcf	    vt, 0
     bcf	    vt, 1
-    bcf	    vt, 2
     bcf	    vard, 1
     return
     
@@ -371,7 +397,6 @@ Sem3:
     bsf	    PORTA, 0
     bsf	    PORTA, 3
     bsf	    PORTB, 3
-    bcf	    D1, 0
     bcf	    D1, 1
     bsf	    D1, 2
     movf    sem3, w
@@ -385,8 +410,6 @@ Sem3:
     retfie
         
 verdet3:
-    bcf	    vt,0
-    bcf	    vt,1
     bsf	    vt,2
     movf    sem3, w
     sublw   2
@@ -395,11 +418,8 @@ verdet3:
     retfie
 
 am3:
-    
     bcf	    ama,1
     bsf	    ama,2
-    bcf	    vt,0
-    bcf	    vt,1
     bcf	    vt,2
     bcf	    vard, 2
     return
@@ -581,8 +601,12 @@ loop:
     goto    estado_1
     
 estado_0:
-    bcf	    PORTB, 0
+    bsf	    PORTB, 0
     bcf	    PORTB, 1
+    movlw   0
+    movwf   dece4
+    movlw   0
+    movwf   uni4
     goto    loop
     
 estado_1:
