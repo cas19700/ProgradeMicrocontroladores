@@ -110,6 +110,7 @@ PSECT udata_bank0
   nv1:		DS 1
   nv2:		DS 1
   nv3:		DS 1
+  YN:		DS 1
   sem1:		DS  1	;Variable para el nibble
   sem2:		DS  1	;Variable para el nibble
   sem3:		DS  1	;Variable para el nibble
@@ -152,6 +153,8 @@ isr:
     goto    estado_2_int
     btfss   estado, 3
     goto    estado_3_int
+    btfss   estado, 4
+    goto    estado_4_int
        
 estado_0_int:
     btfss   PORTB, MODE
@@ -166,7 +169,18 @@ estado_2_int:
     Display nv2, EST2, EST3
     goto    pop
 estado_3_int:
-    Display nv3, EST3, EST0
+    Display nv3, EST3, EST4
+    goto    pop
+estado_4_int:
+    btfss   PORTB, MODE
+    bsf	    estado, 4
+    btfss   PORTB, MODE
+    bcf	    estado, 0
+    btfss   PORTB, UP
+    bsf	    YN, 0
+    btfss   PORTB, DOWN
+    bsf	    YN, 1
+    bcf	    RBIF
     goto    pop
     
     
@@ -345,7 +359,6 @@ Sem2:
     retfie
     
 Sem3:
-
     movf    sem3, w		;Mover la variable del contador a w
     sublw   0
     btfss   CARRY
@@ -353,8 +366,7 @@ Sem3:
     bcf	    D1, 1
     bsf	    D1, 2
     retfie
-
-    
+   
 PSECT code, delta=2, abs
 ORG 100h		    ; Posicion para el código
 Tabla:
@@ -417,26 +429,26 @@ main:
 
     banksel PORTA
    
-    movlw   0x07
+    movlw   0x0F
     movwf   v1
     movf    v1, w
     movwf   sem1
     
-    movlw   0x0E
+    movlw   0x0F
     movwf   nv1
     
-    movlw   0x0E
+    movlw   0x0F
     movwf   nv2
     
-    movlw   0x0E
+    movlw   0x0F
     movwf   nv3
     
-    movlw   0x07
+    movlw   0x0F
     movwf   v2
     movf    v2, w
     movwf   sem2
     
-    movlw   0x07
+    movlw   0x0F
     movwf   v3
     movf    v3, w
     movwf   sem3
@@ -519,10 +531,8 @@ loop:
     bcf	    PORTA, 2
     btfsc   ama, 1
     bsf	    PORTA, 4
-    
     btfss   ama, 1
     bcf	    PORTA, 4
-    
     btfsc   ama, 1
     bcf	    PORTA, 5
     btfsc   ama, 2
@@ -531,7 +541,11 @@ loop:
     bcf	    PORTA, 7
     btfsc   ama, 2
     bcf	    PORTB, 3
-
+    btfsc   YN, 0
+    call    Yes
+    btfsc   YN, 1
+    call    No
+    
     
 ;revisar estado
     btfss   estado, 0
@@ -542,6 +556,8 @@ loop:
     goto    estado_2
     btfss   estado, 3
     goto    estado_3
+    btfss   estado, 4
+    goto    estado_4
     
 estado_0:
     bcf	    PORTB, 2
@@ -591,6 +607,16 @@ estado_3:
     call    div_1	    ;Llamamos la division por 1
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni4    
+    goto    loop   
+    
+estado_4:
+    bsf	    PORTB, 0
+    bsf	    PORTB, 1 
+    bsf	    vard, 3
+    movlw   0
+    movwf   display_var+6
+    movlw   0
+    movwf   display_var+7 
     goto    loop    
 
 
@@ -798,7 +824,16 @@ comp1:
     btfsc   CARRY
     goto    verdet1
     bcf	    ama, 2
+    bcf	    ama, 1
+    bcf	    ama, 0
+    bcf	    vt,0
+    bcf	    vt,1
+    bcf	    vt,2
+    bcf	    vard, 1
+    bcf	    vard, 0
+    bcf	    vard, 2
     bcf	    PORTA, 0
+    bcf	    PORTA, 5
     bcf	    PORTB, 3
     bsf	    PORTA, 2
     bsf	    PORTA, 3
@@ -879,4 +914,30 @@ am3:
 rst:
     bsf	    of, 4
     return
+Yes:
+    movf    nv1, w
+    movwf   v1
+    movf    nv2, w
+    movwf   v2
+    movwf   nv3, w
+    movwf   v3
+;    call    rstsem
+    call    rst
+    bcf	    YN, 0
+    return
+No:
+    movlw   0x0F
+    movwf   nv1
+    movlw   0x0F
+    movwf   nv2
+    movlw   0x0F
+    movwf   nv3
+    bcf	    YN, 1
+    return
+;rstsem:
+;    call    delay_big
+;    bcf	    PORTA, 0
+;    bcf	    PORTA, 3
+;    bcf	    PORTA, 6
+;    return
 END
