@@ -71,10 +71,12 @@ PSECT udata_bank0
   dece1:	DS  1	;Variable para la decena
   dece2:	DS  1	;Variable para la decena
   dece3:	DS  1	;Variable para la decena
+  dece4:	DS  1	;Variable para la decena
   uni:		DS  1	;Variable para unidad
   uni1:		DS  1	;Variable para unidad
   uni2:		DS  1	;Variable para unidad
   uni3:		DS  1	;Variable para unidad
+  uni4:		DS  1	;Variable para unidad
   div:		DS  1	;Variable para dividir
   vard:		DS  1	;Variable para display
   v1:		DS  1	;Valor inicial 1
@@ -87,7 +89,9 @@ PSECT udata_bank0
   cont_big:	DS 2
   estado:	DS 1
   of:		DS 1
-    
+  nv1:		DS 1
+  nv2:		DS 1
+  nv3:		DS 1
   sem1:		DS  1	;Variable para el nibble
   sem2:		DS  1	;Variable para el nibble
   sem3:		DS  1	;Variable para el nibble
@@ -119,12 +123,29 @@ isr:
     btfsc   TMR1IF	;Si esta en cero saltar la instruccion de abajo
     call    int_tmr1	;Llamar la subrutina de la interrpucion del timer1
     
-    ;btfsc   TMR2IF	;Si esta en cero saltar la instruccion de abajo
-    ;call    int_tmr2	;Llamar la subrutina de la interrpucion del timer2
+    btfss   RBIF	;Si esta en cero saltar la instruccion de abajo
+    goto    pop
     
-    ;btfsc   RBIF	;Si esta en cero saltar la instruccion de abajo
-    ;call    PB_int	;Llamar la subrutina de los interrupciones en puerto B
-  
+    btfss   estado, 0
+    goto    estado_0_int
+    goto    estado_1_int
+    
+estado_0_int:
+    btfss   PORTB, MODE
+    bsf	    estado, 0
+    bcf	    RBIF
+    goto    pop
+    
+
+estado_1_int:
+    btfss   PORTB, UP
+    incf    nv1
+    btfss   PORTB, DOWN
+    decf    nv1
+    btfss   PORTB, MODE
+    bcf	    estado, 0
+    bcf	    RBIF
+    goto    pop
     
 pop:
     swapf   stmp, w	;Cambiar stmp con w
@@ -160,6 +181,7 @@ int_tmr0:
     
     btfss   band, 7
     goto    display_7
+    
 display_0:
     clrf    band		;Limpiar banderas cada vez que se empieza	
     bsf	    band, 0		;Lo volvemos 1 para pasar de instrucción
@@ -411,18 +433,6 @@ reinicio:
     bsf	    PORTB, 3
     retfie
     
-PB_int:
-    banksel PORTA
-    btfss   PORTB, UP	    ;Si esta encendido saltar la instruccion
-    incf    PORTA	    ;Incrementar puerto A
-    
-    btfss   PORTB, DOWN	    ;Si esta encendido saltar la instruccion
-    decf    PORTA	    ;Decrementar puerto A
-    
-    bcf	    RBIF	    ;Limpiar la bandera
-   
-    return
-    
 PSECT code, delta=2, abs
 ORG 100h		    ; Posicion para el código
 Tabla:
@@ -483,7 +493,7 @@ main:
     call conf_PB
     call conf_tmr0
     call conf_tmr1
-;    call conf_tmr2
+
     banksel PORTA
    
     movlw   0x0E
@@ -575,33 +585,29 @@ loop:
     bsf	    PORTA, 7
     btfsc   ama, 2
     bcf	    PORTB, 3
-    goto    loop
+    
 ;revisar estado
-;    btfsc   estado, 0
-;    goto    estado1
-;    btfsc   estado, 1
-;    goto    estado2
-;    btfsc   estado, 2
-;    goto    estado3
-;    btfsc   estado, 3
-;    goto    estado4
-;    btfsc   estado, 4
-;    goto    estado5 
-;estado1:
-;    bcf	    PORTB, 0
-;    bcf	    PORTB, 1
-;    bcf	    PORTB, 2
-;    bcf	    PORTD, 6
-;    bcf	    PORTD, 7
-;    goto    loop
-;estado2:
-;    goto    loop
-;estado3:
-;    goto    loop
-;estado4:
-;    goto    loop
-;estado5:
-;    goto    loop
+    btfss   estado, 0
+    goto    estado_0
+    goto    estado_1
+    
+estado_0:
+    bcf	    PORTB, 0
+    bcf	    PORTB, 1
+    goto    loop
+    
+estado_1:
+    bcf	    PORTB, 0
+    bsf	    PORTB, 1
+    movf    nv1, w
+    movwf   div		    ;Movemos el valor a la variable div
+    call    div_10	    ;Llamamos la division por 10
+    movf    dece, w	    ;Movemos la decena a w
+    movwf   dece4
+    call    div_1	    ;Llamamos la division por 1
+    movf    uni, w	    ;Movemos la unidad a w
+    movwf   uni4    
+    goto    loop
 
 ;-----------------sub rutinas------------------------------
 pp_display:
@@ -629,6 +635,13 @@ pp_display:
     call    Tabla	    ;Llamamos a la tabla para tenerlo en hexadecimal
     movwf   display_var+5   ;Lo movemos a la variable de display nibble 4
     
+    movf    dece4, w	    ;La variable unidad la movemos a w
+    call    Tabla	    ;Llamamos a la tabla para tenerlo en hexadecimal
+    movwf   display_var+6   ;Lo movemos a la variable de display nibble 4
+    
+    movf    uni4, w	    ;La variable unidad la movemos a w
+    call    Tabla	    ;Llamamos a la tabla para tenerlo en hexadecimal
+    movwf   display_var+7   ;Lo movemos a la variable de display nibble 4
     return
     
 conf_reloj:
@@ -650,9 +663,6 @@ conf_int:
     
     bsf	    TMR1IE  ;Activamos la interrupcion del timer1
     bcf	    TMR1IF  ;Limpiamos la bandera
-    
-    bsf	    TMR2IE  ;Activamos la interrupcion del timer2
-    bcf	    TMR2IF  ;Limpiamos la bandera
     return
 
     
@@ -689,17 +699,6 @@ conf_tmr1:
     bsf		T1CON, 0 ;Encender el timer1
     rst_tmr1		 ;Reseteamos el timer1
     return
-
-;conf_tmr2:
-;    banksel	T2CON
-;    bsf		T2CON, 3 ;Activamos el timer2
-;    bsf		T2CON, 4 ;Configuramos el postscaler en 1:16
-;    bsf		T2CON, 5
-;    bsf		T2CON, 6
-;    bsf		T2CON, 1 ;Configuramso el prescaler en 16
-;    bsf		T2CON, 2
-;    rst_tmr2		 ;Reseteamos el timer2
-;    return
     
 div_10:
     clrf    dece    ;Limpiar la variable decenas
