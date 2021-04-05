@@ -142,7 +142,7 @@ isr:
     
     btfss   RBIF	;Si esta en cero saltar la instruccion de abajo
     goto    pop
-    
+;    
     btfss   estado, 0
     goto    estado_0_int
     btfss   estado, 1
@@ -150,7 +150,7 @@ isr:
     btfss   estado, 2
     goto    estado_2_int
     
-    
+;    
 estado_0_int:
     btfss   PORTB, MODE
     bsf	    estado, 0
@@ -323,33 +323,33 @@ Sem1:
     sublw   0
     btfss   CARRY		;Si la resta da 0 saltar la instrucción 
     decf    sem1		;Decrementar la variable del contador
-    movf    sem1, w
-    sublw   5
-    btfsc   CARRY
-    goto    verdet1
-    bcf	    ama, 2
-    clrf    PORTA
-    clrf    PORTB
-    bsf	    PORTA, 2
-    bsf	    PORTA, 3
-    bsf	    PORTA, 6
+;    movf    sem1, w
+;    sublw   5
+;    btfsc   CARRY
+;    goto    verdet1
+;    bcf	    ama, 2
+;    clrf    PORTA
+;    clrf    PORTB
+;    bsf	    PORTA, 2
+;    bsf	    PORTA, 3
+;    bsf	    PORTA, 6
     bsf	    D1, 0
     bcf	    D1, 1
     retfie
-    
-verdet1:
-    bsf	    vt,0
-    movf    sem1, w
-    sublw   2
-    btfsc   CARRY
-    call    am1
-    retfie
-am1:
-    bsf	    ama,0
-    bcf	    ama,2
-    bcf	    vt,0
-    bcf	    vard, 0
-    return
+;    
+;verdet1:
+;    bsf	    vt,0
+;    movf    sem1, w
+;    sublw   2
+;    btfsc   CARRY
+;    call    am1
+;    retfie
+;am1:
+;    bsf	    ama,0
+;    bcf	    ama,2
+;    bcf	    vt,0
+;    bcf	    vard, 0
+;    return
     
 Sem2:
     movf    sem2, w		;Mover la variable del contador a w
@@ -534,6 +534,8 @@ loop:
 ;Ejecutar independientemente del estado en que se encuentra 
     call    pp_display	    ;Llamamos a preparar display
     call    v123  
+    btfsc   D1, 0
+    call    comp1
     btfsc   D1, 0
     movf    sem1, w	    ;Movemos el valor de la variable a w
     btfsc   D1, 1
@@ -820,4 +822,29 @@ delay_small:
     decfsz  cont_small,	1   ;decrementar el contador
     goto    $-1		    ;ejecutar la linea anterior
     return   
+comp1:
+    movf    sem1, w
+    sublw   5
+    btfsc   CARRY
+    goto    verdet1
+    bcf	    ama, 2
+    clrf    PORTA
+    clrf    PORTB
+    bsf	    PORTA, 2
+    bsf	    PORTA, 3
+    bsf	    PORTA, 6
+    return
+verdet1:
+    bsf	    vt,0
+    movf    sem1, w
+    sublw   2
+    btfsc   CARRY
+    call    am1
+    return
+am1:
+    bsf	    ama,0
+    bcf	    ama,2
+    bcf	    vt,0
+    bcf	    vard, 0
+    return 
 END
