@@ -66,7 +66,7 @@ PSECT udata_bank0
   varcont:	DS  1	;Variable para el contador
   varcont2:	DS  1	;Variable para el contador
   band:		DS  1	;Variable para las banderas
-  display_var:	DS  6	;Variable para el display
+  display_var:	DS  8	;Variable para el display
   dece:		DS  1	;Variable para la decena
   dece1:	DS  1	;Variable para la decena
   dece2:	DS  1	;Variable para la decena
@@ -85,9 +85,9 @@ PSECT udata_bank0
   ama:		DS  1	;Variable amarillo
   cont_small:	DS 2; 1 byte
   cont_big:	DS 2
-
-
-
+  estado:	DS 1
+  of:		DS 1
+    
   sem1:		DS  1	;Variable para el nibble
   sem2:		DS  1	;Variable para el nibble
   sem3:		DS  1	;Variable para el nibble
@@ -155,13 +155,18 @@ int_tmr0:
     btfss   band, 5
     goto    display_5
     
- ;   btfss   band, 6
-;    goto    display_6
+    btfss   band, 6
+    goto    display_6
+    
+    btfss   band, 7
+    goto    display_7
 display_0:
     clrf    band		;Limpiar banderas cada vez que se empieza	
     bsf	    band, 0		;Lo volvemos 1 para pasar de instrucción
     movf    display_var+0, w	;Movemos el nibble a w
     movwf   PORTC		;Movemos w al puerto C
+    btfsc   vard, 0	    ;Si la variable no esta en cero limpiar el puerto
+    clrf    PORTC
     bsf	    PORTD, 0		;Encendemos el bit 1 del puerto D
     
     return
@@ -171,6 +176,8 @@ display_1:
     bsf	    band, 1		;Volvemos 1 para pasar la instrucción
     movf    display_var+1, w	;Movemos el nibble a w
     movwf   PORTC		;Movemos w al puerto C
+    btfsc   vard, 0	    ;Si la variable no esta en cero limpiar el puerto
+    clrf    PORTC
     bsf	    PORTD, 1		;Encendemos el bit 0 del puerto D
     
     return
@@ -180,6 +187,8 @@ display_2:
     bsf	    band, 2		;Volvemos 1 para pasar la instrucción
     movf    display_var+2, w	;Movemos el nibble a w
     movwf   PORTC		;Movemos w al puerto C
+    btfsc   vard, 1	    ;Si la variable no esta en cero limpiar el puerto
+    clrf    PORTC
     bsf	    PORTD, 2		;Encendemos el bit 2 del puerto D
     
     return
@@ -189,6 +198,8 @@ display_3:
     bsf	    band, 3		;Volvemos 1 para pasar la instrucción
     movf    display_var+3, w	;Movemos el nibble a w
     movwf   PORTC		;Movemos w al puerto C
+    btfsc   vard, 1	    ;Si la variable no esta en cero limpiar el puerto
+    clrf    PORTC
     bsf	    PORTD, 3		;Encendemos el bit 3 del puerto D
     
     return
@@ -198,6 +209,8 @@ display_4:
     bsf	    band, 4		;Volvemos 1 para pasar la instrucción
     movf    display_var+4, w	;Movemos el nibble a w
     movwf   PORTC		;Encendemos w al puerto C
+    btfsc   vard, 2	    ;Si la variable no esta en cero limpiar el puerto
+    clrf    PORTC
     bsf	    PORTD, 4		;Encendemos el bit 4 del puerto D
     
     return
@@ -207,20 +220,29 @@ display_5:
     bsf	    band, 5		;Volvemos 1 para pasar la instrucción
     movf    display_var+5, w	;Movemos el nibble a w
     movwf   PORTC		;Encendemos w al puerto C
+    btfsc   vard, 2	    ;Si la variable no esta en cero limpiar el puerto
+    clrf    PORTC
     bsf	    PORTD, 5		;Encendemos el bit 4 del puerto D
     
     return
  
-;display_6:
+display_6:
   
- ;   bsf	    band, 6		;Volvemos 1 para pasar la instrucción
-  ;  movf    display_var+6, w	;Movemos el nibble a w
-   ; movwf   PORTC		;Encendemos w al puerto C
-   ; bsf	    PORTD, 6		;Encendemos el bit 4 del puerto D
+    bsf	    band, 6		;Volvemos 1 para pasar la instrucción
+    movf    display_var+6, w	;Movemos el nibble a w
+    movwf   PORTC		;Encendemos w al puerto C
+    bsf	    PORTD, 6		;Encendemos el bit 4 del puerto D
     
+    return
     
-    ;return
+display_7:
+  
+    bsf	    band, 7		;Volvemos 1 para pasar la instrucción
+    movf    display_var+7, w	;Movemos el nibble a w
+    movwf   PORTC		;Encendemos w al puerto C
+    bsf	    PORTD, 7		;Encendemos el bit 4 del puerto D
     
+    return 
 int_tmr1:
     rst_tmr1			;Reseteamos el timer1
     incf    vartmr1		;Incrementamos la variable del timer1
@@ -284,6 +306,7 @@ am1:
     bcf	    vt,0
     bcf	    vt,1
     bcf	    vt,2
+    bcf	    vard, 0
     return
     
 Sem2:
@@ -323,6 +346,7 @@ am2:
     bcf	    vt, 0
     bcf	    vt, 1
     bcf	    vt, 2
+    bcf	    vard, 1
     return
     
 Sem3:
@@ -367,6 +391,7 @@ am3:
     bcf	    vt,0
     bcf	    vt,1
     bcf	    vt,2
+    bcf	    vard, 2
     return
     
 reinicio:
@@ -401,26 +426,7 @@ PB_int:
 PSECT code, delta=2, abs
 ORG 100h		    ; Posicion para el código
 Tabla:
-;    andlw   00001111B
-;    addwf   PCL
-;    retlw   00111111B	    ;0
-;    retlw   00000110B	    ;1
-;    retlw   01011011B	    ;2
-;    retlw   01001111B	    ;3
-;    retlw   01100110B	    ;4
-;    retlw   01101101B	    ;5
-;    retlw   01111101B	    ;6
-;    retlw   00000111B	    ;7
-;    retlw   01111111B	    ;8
-;    retlw   01101111B	    ;9
-;    retlw   01110111B	    ;A
-;    retlw   01111100B	    ;B
-;    retlw   00111001B	    ;C
-;    retlw   01011110B	    ;D
-;    retlw   01111001B	    ;E
-;    retlw   01110001B	    ;F
-;    retlw   0
-    
+   
     clrf    PCLATH
     bsf	    PCLATH, 0	    ;PCLATH = 01
     andlw   0x0f
@@ -506,9 +512,9 @@ main:
    
 ;-----------------loop principal---------------------------
 loop:
-   
+;Ejecutar independientemente del estado en que se encuentra 
     call    pp_display	    ;Llamamos a preparar display
-    call    v123
+    call    v123  
     btfsc   D1, 0
     movf    sem1, w	    ;Movemos el valor de la variable a w
     btfsc   D1, 1
@@ -524,6 +530,7 @@ loop:
     call    div_1	    ;Llamamos la division por 1
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni1
+    
     
     btfsc   D1, 0
     movf    sem1, w
@@ -568,9 +575,33 @@ loop:
     bsf	    PORTA, 7
     btfsc   ama, 2
     bcf	    PORTB, 3
-    
-	
     goto    loop
+;revisar estado
+;    btfsc   estado, 0
+;    goto    estado1
+;    btfsc   estado, 1
+;    goto    estado2
+;    btfsc   estado, 2
+;    goto    estado3
+;    btfsc   estado, 3
+;    goto    estado4
+;    btfsc   estado, 4
+;    goto    estado5 
+;estado1:
+;    bcf	    PORTB, 0
+;    bcf	    PORTB, 1
+;    bcf	    PORTB, 2
+;    bcf	    PORTD, 6
+;    bcf	    PORTD, 7
+;    goto    loop
+;estado2:
+;    goto    loop
+;estado3:
+;    goto    loop
+;estado4:
+;    goto    loop
+;estado5:
+;    goto    loop
 
 ;-----------------sub rutinas------------------------------
 pp_display:
@@ -628,8 +659,8 @@ conf_int:
 conf_PB:
     banksel TRISA
     bsf	    IOCB, MODE	    ;Habilitar RB5
-    ;bsf	    IOCB, UP	    ;Habilitar RB6
-    ;bsf	    IOCB, DOWN	    ;Habilitar RB7
+    bsf	    IOCB, UP	    ;Habilitar RB6
+    bsf	    IOCB, DOWN	    ;Habilitar RB7
     
     banksel PORTA
     movf    PORTB, w	    ;Mover el valor a w
@@ -704,45 +735,64 @@ v123:
     btfsc   vt, 2
     call    ve3
     return
-ve1:
+ve1:    
+    bcf     of, 0
     btfsc   PORTA, 2
-    call   off1
+    call    off1
+    btfsc   of, 0
+    return
     call    on1
+    return
 on1:
     bsf	    PORTA, 2		;Encender el primer bit del puerto A
+    bcf	    vard, 0
     call    delay_big
     return		;Regresar
 off1:
     bcf	    PORTA, 2		;Apagar el primer bit del puerto A
+    bsf	    vard, 0
+    bsf	    of, 0
     call    delay_big
     return
     
 ve2:
+    bcf	    of, 1
     btfsc   PORTA, 5
     call    off2
+    btfsc   of, 1
+    return
     call    on2
     return
 on2:
     bsf	    PORTA, 5		;Encender el primer bit del puerto A
+    bcf	    vard, 1
     call    delay_big
     return			;Regresar
 off2:
     bcf	    PORTA, 5		;Apagar el primer bit del puerto A
+    bsf	    vard, 1
+    bsf	    of, 1
     call    delay_big
     return  
  
     
 ve3:
+    bcf	    of, 2
     btfsc   PORTB, 3
     call    off3
+    btfsc   of, 2
+    return
     call    on3
     return
 on3:
     bsf	    PORTB, 3		;Encender el primer bit del puerto A
+    bcf	    vard, 2
     call    delay_big
     return			;Regresar
 off3:
     bcf	    PORTB, 3		;Apagar el primer bit del puerto A
+    bsf	    vard, 2
+    bsf	    of, 2
     call    delay_big
     return 
     
