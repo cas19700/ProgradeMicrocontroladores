@@ -164,6 +164,7 @@ estado_1_int:
 estado_2_int:
     Display nv2, EST2, EST0
     goto    pop
+    
 ;estado_2_int:
 ;    btfss   PORTB, UP   
 ;    incf    nv2
@@ -513,6 +514,12 @@ main:
     movwf   nv1
     
     movlw   0x0E
+    movwf   nv2
+    
+    movlw   0x0E
+    movwf   nv3
+    
+    movlw   0x0E
     movwf   v2
     movf    v2, w
     movwf   sem2
@@ -608,7 +615,9 @@ loop:
     
 estado_0:
     bsf	    PORTB, 0
-    bcf	    PORTB, 1
+    bcf	    PORTB, 2
+    bcf	    PORTD, 6
+    bcf	    PORTD, 7
     movlw   0
     movwf   dece4
     movlw   0
