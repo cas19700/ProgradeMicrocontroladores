@@ -62,9 +62,6 @@ DOWN	EQU 6		;RB2
 
 PSECT udata_bank0
   vartmr1:	DS  1	;Variable para 1 segundo
-  vartmr2:	DS  1	;Variable para 1 segundo
-  varcont:	DS  1	;Variable para el contador
-  varcont2:	DS  1	;Variable para el contador
   band:		DS  1	;Variable para las banderas
   display_var:	DS  8	;Variable para el display
   dece:		DS  1	;Variable para la decena
@@ -139,7 +136,13 @@ estado_0_int:
 
 estado_1_int:
     btfss   PORTB, UP
+    movf    nv1, w
+    sublw   20
+    btfss   CARRY
     incf    nv1
+    ;btfsc   CARRY
+    ;movlw   10
+    ;movwf   nv1
     btfss   PORTB, DOWN
     decf    nv1
     btfss   PORTB, MODE
@@ -190,18 +193,15 @@ display_0:
     btfsc   vard, 0	    ;Si la variable no esta en cero limpiar el puerto
     clrf    PORTC
     bsf	    PORTD, 0		;Encendemos el bit 1 del puerto D
-    
     return
    
 display_1:
-   
     bsf	    band, 1		;Volvemos 1 para pasar la instrucción
     movf    display_var+1, w	;Movemos el nibble a w
     movwf   PORTC		;Movemos w al puerto C
     btfsc   vard, 0	    ;Si la variable no esta en cero limpiar el puerto
     clrf    PORTC
     bsf	    PORTD, 1		;Encendemos el bit 0 del puerto D
-    
     return
     
 display_2:
@@ -212,7 +212,6 @@ display_2:
     btfsc   vard, 1	    ;Si la variable no esta en cero limpiar el puerto
     clrf    PORTC
     bsf	    PORTD, 2		;Encendemos el bit 2 del puerto D
-    
     return
     
 display_3:
@@ -223,7 +222,6 @@ display_3:
     btfsc   vard, 1	    ;Si la variable no esta en cero limpiar el puerto
     clrf    PORTC
     bsf	    PORTD, 3		;Encendemos el bit 3 del puerto D
-    
     return
 
 display_4:
@@ -234,7 +232,6 @@ display_4:
     btfsc   vard, 2	    ;Si la variable no esta en cero limpiar el puerto
     clrf    PORTC
     bsf	    PORTD, 4		;Encendemos el bit 4 del puerto D
-    
     return
 
 display_5:
@@ -245,7 +242,6 @@ display_5:
     btfsc   vard, 2	    ;Si la variable no esta en cero limpiar el puerto
     clrf    PORTC
     bsf	    PORTD, 5		;Encendemos el bit 4 del puerto D
-    
     return
  
 display_6:
@@ -254,7 +250,6 @@ display_6:
     movf    display_var+6, w	;Movemos el nibble a w
     movwf   PORTC		;Encendemos w al puerto C
     bsf	    PORTD, 6		;Encendemos el bit 4 del puerto D
-    
     return
     
 display_7:
@@ -263,24 +258,21 @@ display_7:
     movf    display_var+7, w	;Movemos el nibble a w
     movwf   PORTC		;Encendemos w al puerto C
     bsf	    PORTD, 7		;Encendemos el bit 4 del puerto D
-    
     return 
+    
 int_tmr1:
     rst_tmr1			;Reseteamos el timer1
     incf    vartmr1		;Incrementamos la variable del timer1
     movf    vartmr1, w		;Movemos la variable a w
     sublw   1			;Le restamos dos veces para poder tener 1seg
     btfsc   CARRY		;Si esta en 1 saltar la instrucción de abajo
-    goto    rtrn_tmr1		;Regresar
+    return
     clrf    vartmr1		;Limpiar la variable 
     movf    sem1, w
     sublw   0
     btfss   CARRY		;Si la resta da 0 saltar la instrucción 
     goto    Sem1
-    goto    Sem2o3
-
-rtrn_tmr1:
-    return			;Regresar   
+    goto    Sem2o3  
     
 Sem2o3:
     movf    sem2, w		;Mover la variable del contador a w
@@ -288,9 +280,7 @@ Sem2o3:
     btfss   CARRY		;Si la resta da 0 saltar la instrucción 
     goto    Sem2
     goto    Sem3
-    
-
-    
+  
 Sem1:
     movf    sem1, w		;Mover la variable del contador a w
     sublw   0
@@ -312,7 +302,6 @@ Sem1:
     retfie
     
 verdet1:
-    
     bsf	    vt,0
     bcf	    vt,1
     bcf	    vt,2
@@ -323,7 +312,6 @@ verdet1:
     retfie
 am1:
     bsf	    ama,0
-    bcf	    ama,1
     bcf	    ama,2
     bcf	    vt,0
     bcf	    vt,1
@@ -364,7 +352,7 @@ verdet2:
 am2:
     bcf	    ama, 0
     bsf	    ama, 1
-    bcf	    ama, 2
+    
     bcf	    vt, 0
     bcf	    vt, 1
     bcf	    vt, 2
@@ -407,7 +395,7 @@ verdet3:
     retfie
 
 am3:
-    bcf	    ama,0
+    
     bcf	    ama,1
     bsf	    ama,2
     bcf	    vt,0
@@ -436,7 +424,6 @@ reinicio:
 PSECT code, delta=2, abs
 ORG 100h		    ; Posicion para el código
 Tabla:
-   
     clrf    PCLATH
     bsf	    PCLATH, 0	    ;PCLATH = 01
     andlw   0x0f
@@ -502,6 +489,9 @@ main:
     movwf   sem1
     
     movlw   0x0E
+    movwf   nv1
+    
+    movlw   0x0E
     movwf   v2
     movf    v2, w
     movwf   sem2
@@ -517,7 +507,6 @@ main:
     bcf	    ama,1
     bcf	    ama,2
    
-    clrf    varcont
     
    
 ;-----------------loop principal---------------------------
@@ -773,8 +762,6 @@ off2:
     bsf	    of, 1
     call    delay_big
     return  
- 
-    
 ve3:
     bcf	    of, 2
     btfsc   PORTB, 3
@@ -808,6 +795,5 @@ delay_small:
     movwf   cont_small	
     decfsz  cont_small,	1   ;decrementar el contador
     goto    $-1		    ;ejecutar la linea anterior
-    return
-    
+    return   
 END
