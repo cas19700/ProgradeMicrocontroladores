@@ -143,15 +143,16 @@ isr:
     
     btfss   RBIF	;Si esta en cero saltar la instruccion de abajo
     goto    pop
-;    
+    
     btfss   estado, 0
     goto    estado_0_int
     btfss   estado, 1
     goto    estado_1_int
     btfss   estado, 2
     goto    estado_2_int
-    
-;    
+    btfss   estado, 3
+    goto    estado_3_int
+       
 estado_0_int:
     btfss   PORTB, MODE
     bsf	    estado, 0
@@ -162,7 +163,10 @@ estado_1_int:
     Display nv1, EST1, EST2
     goto    pop
 estado_2_int:
-    Display nv2, EST2, EST0
+    Display nv2, EST2, EST3
+    goto    pop
+estado_3_int:
+    Display nv3, EST3, EST0
     goto    pop
     
     
@@ -265,6 +269,9 @@ display_6:
     bsf	    band, 6		;Volvemos 1 para pasar la instrucción
     movf    display_var+6, w	;Movemos el nibble a w
     movwf   PORTC		;Encendemos w al puerto C
+    btfsc   vard, 3
+    bcf	    PORTD, 6
+    btfss   vard, 3
     bsf	    PORTD, 6		;Encendemos el bit 4 del puerto D
     return
     
@@ -273,6 +280,9 @@ display_7:
     bsf	    band, 7		;Volvemos 1 para pasar la instrucción
     movf    display_var+7, w	;Movemos el nibble a w
     movwf   PORTC		;Encendemos w al puerto C
+    btfsc   vard, 3
+    bcf	    PORTD, 7
+    btfss   vard, 3
     bsf	    PORTD, 7		;Encendemos el bit 4 del puerto D
     return 
     
@@ -530,21 +540,23 @@ loop:
     goto    estado_1
     btfss   estado, 2
     goto    estado_2
+    btfss   estado, 3
+    goto    estado_3
     
 estado_0:
-    bsf	    PORTB, 0
     bcf	    PORTB, 2
-    bcf	    PORTD, 6
-    bcf	    PORTD, 7
+    bcf	    PORTB, 1
+    bcf	    PORTB, 0
+    bsf	    vard, 3
     movlw   0
-    movwf   dece4
+    movwf   display_var+6
     movlw   0
-    movwf   uni4
+    movwf   display_var+7
     goto    loop
     
 estado_1:
-    bcf	    PORTB, 0
-    bsf	    PORTB, 1
+    bcf	    vard, 3
+    bsf	    PORTB, 0
     movf    nv1, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
@@ -556,8 +568,8 @@ estado_1:
     goto    loop
     
 estado_2:
-    bcf	    PORTB, 1
-    bsf	    PORTB, 2
+    bcf	    PORTB, 0
+    bsf	    PORTB, 1
     movf    nv2, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
@@ -568,18 +580,18 @@ estado_2:
     movwf   uni4    
     goto    loop
     
-;estado_3:
-;    bcf	    PORTB, 1
-;    bsf	    PORTB, 2
-;    movf    nv3, w
-;    movwf   div		    ;Movemos el valor a la variable div
-;    call    div_10	    ;Llamamos la division por 10
-;    movf    dece, w	    ;Movemos la decena a w
-;    movwf   dece4
-;    call    div_1	    ;Llamamos la division por 1
-;    movf    uni, w	    ;Movemos la unidad a w
-;    movwf   uni4    
-;    goto    loop    
+estado_3:
+    bcf	    PORTB, 1
+    bsf	    PORTB, 2
+    movf    nv3, w
+    movwf   div		    ;Movemos el valor a la variable div
+    call    div_10	    ;Llamamos la division por 10
+    movf    dece, w	    ;Movemos la decena a w
+    movwf   dece4
+    call    div_1	    ;Llamamos la division por 1
+    movf    uni, w	    ;Movemos la unidad a w
+    movwf   uni4    
+    goto    loop    
 
 
 ;-----------------sub rutinas------------------------------
