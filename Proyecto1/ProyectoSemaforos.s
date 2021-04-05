@@ -66,6 +66,7 @@ Display macro _nv, _estados0, _estados1
     movwf   _nv
     btfss   PORTB, MODE
     bsf	    estado, _estados0
+    btfss   PORTB, MODE
     bcf	    estado, _estados1
     bcf	    RBIF
 endm
@@ -362,7 +363,7 @@ Sem2:
     goto    verdet2
     bcf	    ama, 0
     clrf    PORTA
-    clrf    PORTB
+    bcf	    PORTB, 3
     bsf	    PORTA, 0
     bsf	    PORTA, 5
     bsf	    PORTA, 6
@@ -393,7 +394,7 @@ Sem3:
     decf    sem3
     bcf	    ama, 1
     clrf    PORTA
-    clrf    PORTB
+    bcf	    PORTB, 3
     bsf	    PORTA, 0
     bsf	    PORTA, 3
     bsf	    PORTB, 3
@@ -431,14 +432,14 @@ reinicio:
     movwf   sem2
     movf    v3, w
     movwf   sem3
-    bsf	    D1, 0
-    bcf	    D1, 1
-    bcf	    D1, 2
     clrf    PORTA
-    clrf    PORTB
+    bcf	    PORTB, 3
     bsf	    PORTA, 0
     bsf	    PORTA, 3
     bsf	    PORTB, 3
+    bsf	    D1, 0
+    bcf	    D1, 1
+    bcf	    D1, 2
     retfie
     
 PSECT code, delta=2, abs
@@ -600,7 +601,10 @@ loop:
 ;revisar estado
     btfss   estado, 0
     goto    estado_0
+    btfss   estado, 1
     goto    estado_1
+    btfss   estado, 2
+    goto    estado_2
     
 estado_0:
     bsf	    PORTB, 0
@@ -623,6 +627,20 @@ estado_1:
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni4    
     goto    loop
+    
+estado_2:
+    bcf	    PORTB, 1
+    bsf	    PORTB, 2
+    movf    nv2, w
+    movwf   div		    ;Movemos el valor a la variable div
+    call    div_10	    ;Llamamos la division por 10
+    movf    dece, w	    ;Movemos la decena a w
+    movwf   dece4
+    call    div_1	    ;Llamamos la division por 1
+    movf    uni, w	    ;Movemos la unidad a w
+    movwf   uni4    
+    goto    loop
+
 
 ;-----------------sub rutinas------------------------------
 pp_display:
@@ -828,8 +846,8 @@ comp1:
     btfsc   CARRY
     goto    verdet1
     bcf	    ama, 2
-    clrf    PORTA
-    clrf    PORTB
+    bcf	    PORTA, 0
+    bcf	    PORTB, 3
     bsf	    PORTA, 2
     bsf	    PORTA, 3
     bsf	    PORTA, 6
