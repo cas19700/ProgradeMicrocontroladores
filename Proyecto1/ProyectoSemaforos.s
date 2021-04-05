@@ -307,6 +307,24 @@ int_tmr1:
     btfsc   CARRY		;Si esta en 1 saltar la instrucción de abajo
     return
     clrf    vartmr1		;Limpiar la variable 
+    btfsc   of, 4
+    movf    v1, w
+    btfsc   of, 4
+    movwf   sem1
+    btfsc   of, 4
+    movf    v2, w
+    btfsc   of, 4
+    movwf   sem2
+    btfsc   of, 4
+    movf    v3, w
+    btfsc   of, 4
+    movwf   sem3
+    btfsc   of, 4
+    bsf	    D1, 0
+    btfsc   of, 4
+    bcf	    D1, 1
+    btfsc   of, 4
+    bcf	    D1, 2
     movf    sem1, w
     sublw   0
     btfss   CARRY		;Si la resta da 0 saltar la instrucción 
@@ -321,71 +339,48 @@ Sem2o3:
     goto    Sem3
   
 Sem1:
+    bcf	    of, 4
     movf    sem1, w		;Mover la variable del contador a w
     sublw   0
     btfss   CARRY		;Si la resta da 0 saltar la instrucción 
     decf    sem1		;Decrementar la variable del contador
-;    movf    sem1, w
-;    sublw   5
-;    btfsc   CARRY
-;    goto    verdet1
-;    bcf	    ama, 2
-;    clrf    PORTA
-;    clrf    PORTB
-;    bsf	    PORTA, 2
-;    bsf	    PORTA, 3
-;    bsf	    PORTA, 6
     bsf	    D1, 0
     bcf	    D1, 1
     retfie
-;    
-;verdet1:
-;    bsf	    vt,0
-;    movf    sem1, w
-;    sublw   2
-;    btfsc   CARRY
-;    call    am1
-;    retfie
-;am1:
-;    bsf	    ama,0
-;    bcf	    ama,2
-;    bcf	    vt,0
-;    bcf	    vard, 0
-;    return
     
 Sem2:
     movf    sem2, w		;Mover la variable del contador a w
     sublw   0
     btfss   CARRY
     decf    sem2
-    movf    sem2, w
-    sublw   5
-    btfsc   CARRY
-    goto    verdet2
-    bcf	    ama, 0
-    clrf    PORTA
-    bcf	    PORTB, 3
-    bsf	    PORTA, 0
-    bsf	    PORTA, 5
-    bsf	    PORTA, 6
+;    movf    sem2, w
+;    sublw   5
+;    btfsc   CARRY
+;    goto    verdet2
+;    bcf	    ama, 0
+;    clrf    PORTA
+;    bcf	    PORTB, 3
+;    bsf	    PORTA, 0
+;    bsf	    PORTA, 5
+;    bsf	    PORTA, 6
     bcf	    D1, 0
     bsf	    D1, 1
     retfie
-    
-verdet2:
-    bsf	    vt,1
-    movf    sem2, w
-    sublw   2
-    btfsc   CARRY
-    call    am2
-    retfie
-
-am2:
-    bcf	    ama, 0
-    bsf	    ama, 1
-    bcf	    vt, 1
-    bcf	    vard, 1
-    return
+;    
+;verdet2:
+;    bsf	    vt,1
+;    movf    sem2, w
+;    sublw   2
+;    btfsc   CARRY
+;    call    am2
+;    retfie
+;
+;am2:
+;    bcf	    ama, 0
+;    bsf	    ama, 1
+;    bcf	    vt, 1
+;    bcf	    vard, 1
+;    return
     
 Sem3:
 
@@ -393,55 +388,50 @@ Sem3:
     sublw   0
     btfss   CARRY
     decf    sem3
-    bcf	    ama, 1
-    clrf    PORTA
-    bcf	    PORTB, 3
-    bsf	    PORTA, 0
-    bsf	    PORTA, 3
-    bsf	    PORTB, 3
+;    bcf	    ama, 1
+;    clrf    PORTA
+;    bcf	    PORTB, 3
+;    bsf	    PORTA, 0
+;    bsf	    PORTA, 3
+;    bsf	    PORTB, 3
     bcf	    D1, 1
     bsf	    D1, 2
-    movf    sem3, w
-    sublw   0
-    btfsc   CARRY
-    goto    reinicio
-    movf    sem3, w
-    sublw   5
-    btfsc   CARRY
-    goto    verdet3
+;    movf    sem3, w
+;    sublw   0
+;    btfsc   CARRY
+;    goto    reinicio
+;    movf    sem3, w
+;    sublw   5
+;    btfsc   CARRY
+;    goto    verdet3
     retfie
-        
-verdet3:
-    bsf	    vt,2
-    movf    sem3, w
-    sublw   2
-    btfsc   CARRY
-    call    am3
-    retfie
-
-am3:
-    bcf	    ama,1
-    bsf	    ama,2
-    bcf	    vt,2
-    bcf	    vard, 2
-    return
+;        
+;verdet3:
+;    bsf	    vt,2
+;    movf    sem3, w
+;    sublw   2
+;    btfsc   CARRY
+;    call    am3
+;    retfie
+;
+;am3:
+;    bcf	    ama,1
+;    bsf	    ama,2
+;    bcf	    vt,2
+;    bcf	    vard, 2
+;    return
     
-reinicio:
-    movf    v1, w
-    movwf   sem1
-    movf    v2, w
-    movwf   sem2
-    movf    v3, w
-    movwf   sem3
-    clrf    PORTA
-    bcf	    PORTB, 3
-    bsf	    PORTA, 0
-    bsf	    PORTA, 3
-    bsf	    PORTB, 3
-    bsf	    D1, 0
-    bcf	    D1, 1
-    bcf	    D1, 2
-    retfie
+;reinicio:
+;;    clrf    PORTA
+;;    bcf	    PORTB, 3
+;;    bsf	    PORTA, 0
+;;    bsf	    PORTA, 3
+;;    bsf	    PORTB, 3
+;    bsf	    of, 4
+;;    bcf	    D1, 0
+;;    bcf	    D1, 1
+;;    bsf	    D1, 2
+;    retfie
     
 PSECT code, delta=2, abs
 ORG 100h		    ; Posicion para el código
@@ -505,7 +495,7 @@ main:
 
     banksel PORTA
    
-    movlw   0x0E
+    movlw   0x07
     movwf   v1
     movf    v1, w
     movwf   sem1
@@ -519,12 +509,12 @@ main:
     movlw   0x0E
     movwf   nv3
     
-    movlw   0x0E
+    movlw   0x07
     movwf   v2
     movf    v2, w
     movwf   sem2
     
-    movlw   0x0E
+    movlw   0x07
     movwf   v3
     movf    v3, w
     movwf   sem3
@@ -552,6 +542,8 @@ loop:
     addwf   sem3, w
     btfsc   D1, 2
     movf    sem3, w
+    btfsc   of, 4
+    movf    sem1, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -560,7 +552,8 @@ loop:
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni1
     
-    
+    btfsc   D1, 1
+    call    comp2
     btfsc   D1, 0
     movf    sem1, w
     btfsc   D1, 1
@@ -569,6 +562,8 @@ loop:
     movf    v1, w
     btfsc   D1, 2
     addwf   sem3, w
+;    btfsc   of, 4
+;    movf    sem2, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -577,6 +572,8 @@ loop:
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni2
     
+    btfsc   D1, 2
+    call    comp3
     btfsc   D1, 0
     movf    sem1, w	    ;Movemos el valor de la variable a w
     btfsc   D1, 0
@@ -584,6 +581,8 @@ loop:
     btfsc   D1, 1
     movf    sem2, w
     btfsc   D1, 2
+    movf    sem3, w
+    btfsc   of, 4
     movf    sem3, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
@@ -594,16 +593,26 @@ loop:
     movwf   uni3
     btfsc   ama, 0
     bsf	    PORTA, 1
+    btfss   ama, 0
+    bcf	    PORTA, 1
     btfsc   ama, 0
     bcf	    PORTA, 2
     btfsc   ama, 1
     bsf	    PORTA, 4
+    
+    btfss   ama, 1
+    bcf	    PORTA, 4
+    
     btfsc   ama, 1
     bcf	    PORTA, 5
     btfsc   ama, 2
     bsf	    PORTA, 7
+    btfss   ama, 2
+    bcf	    PORTA, 7
     btfsc   ama, 2
     bcf	    PORTB, 3
+;    btfsc   of, 4
+;    call    rst
     
 ;revisar estado
     btfss   estado, 0
@@ -649,6 +658,19 @@ estado_2:
     movf    uni, w	    ;Movemos la unidad a w
     movwf   uni4    
     goto    loop
+    
+;estado_3:
+;    bcf	    PORTB, 1
+;    bsf	    PORTB, 2
+;    movf    nv3, w
+;    movwf   div		    ;Movemos el valor a la variable div
+;    call    div_10	    ;Llamamos la division por 10
+;    movf    dece, w	    ;Movemos la decena a w
+;    movwf   dece4
+;    call    div_1	    ;Llamamos la division por 1
+;    movf    uni, w	    ;Movemos la unidad a w
+;    movwf   uni4    
+;    goto    loop    
 
 
 ;-----------------sub rutinas------------------------------
@@ -874,4 +896,80 @@ am1:
     bcf	    vt,0
     bcf	    vard, 0
     return 
+comp2:
+    movf    sem2, w
+    sublw   5
+    btfsc   CARRY
+    goto    verdet2
+    bcf	    ama, 0
+    bcf     PORTA, 3
+    bcf	    PORTA, 2
+    bsf	    PORTA, 0
+    bsf	    PORTA, 5
+    bsf	    PORTA, 6
+    return
+    
+verdet2:
+    bsf	    vt,1
+    movf    sem2, w
+    sublw   2
+    btfsc   CARRY
+    call    am2
+    return
+
+am2:
+    bcf	    ama, 0
+    bsf	    ama, 1
+    bcf	    vt, 1
+    bcf	    vard, 1
+    return
+    
+comp3:
+    movf    sem3, w
+    sublw   5
+    btfsc   CARRY
+    goto    verdet3
+    bcf	    ama, 1
+    bcf	    PORTA, 5
+    bcf	    PORTA, 6
+    bsf	    PORTA, 0
+    bsf	    PORTA, 3
+    bsf	    PORTB, 3
+;    return
+;    movf    sem3, w
+;    sublw   0
+;    btfsc   CARRY
+;    call    rst
+    
+    return
+        
+verdet3:
+    bsf	    vt,2
+    movf    sem3, w
+    sublw   2
+    btfsc   CARRY
+    call    am3
+    return
+
+am3:
+    bcf	    ama,1
+    bsf	    ama,2
+    bcf	    vt,2
+    bcf	    vard, 2
+    movf    sem3, w
+    sublw   0
+    btfsc   CARRY
+    call    rst
+    return
+rst:
+;    movf    v1, w
+;    movwf   sem1
+;    movf    v2, w
+;    movwf   sem2
+;    movf    v3, w
+;    movwf   sem3
+    bsf	    of, 4
+;    bcf	    D1, 0
+;    bcf	    D1, 2
+    return
 END
