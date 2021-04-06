@@ -937,7 +937,6 @@ am3:
     call    rst
     return
 rst:
-    
     bsf	    of, 4
     bcf	    ama,0
     bcf	    ama,1
@@ -948,6 +947,12 @@ rst:
     bcf	    PORTA, 5
     bcf	    PORTA, 7
     bcf	    PORTB, 3
+    movf    v1, w
+    movwf   sem1
+    movf    v2, w
+    movwf   sem2
+    movf    v3, w
+    movwf   sem3
     bsf	    D1, 0
     bcf	    D1, 1
     bcf	    D1, 2
