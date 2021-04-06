@@ -114,6 +114,9 @@ PSECT udata_bank0
   sem1:		DS  1	;Variable para el semaforo 1
   sem2:		DS  1	;Variable para el semaforo 2
   sem3:		DS  1	;Variable para el semaforo 3
+  nsem1:	DS  1	;Variable para el display 1
+  nsem2:	DS  1	;Variable para el display 2
+  nsem3:	DS  1	;Variable para el display 3
     
 PSECT udata_shr  
   wtmp:	    DS	1    ;1 byte
@@ -457,25 +460,52 @@ main:
     movwf   v3
     movf    v3, w
     movwf   sem3
+    
     bsf	    D1, 0   ;Valores iniciales para las banderas
     bcf	    D1, 1
     bcf	    D1, 2
     bcf	    ama,0
     bcf	    ama,1
     bcf	    ama,2
-   
+    movf    sem1, w
+    movwf   nsem1
+    movlw   2
+    subwf   nsem1
+    movf    sem2, w
+    movwf   nsem2
+    movlw   2
+    subwf   nsem2
+    movf    sem3, w
+    movwf   nsem3
+    movlw   2
+    subwf   nsem3
     
    
 ;-----------------loop principal---------------------------
 loop:
 ;Ejecutar independientemente del estado en que se encuentra 
+    movf    sem1, w	;Preparamos las variables para los displays
+    movwf   nsem1
+    movlw   2
+    subwf   nsem1
+    
+    movf    sem2, w
+    movwf   nsem2
+    movlw   2
+    subwf   nsem2
+    
+    movf    sem3, w
+    movwf   nsem3
+    movlw   2
+    subwf   nsem3
+    
     call    pp_display	    ;Llamamos a preparar display
     btfsc   YN, 3	    ;Si la bandera esta apagada saltar la instruccion
     call    r_ama	    ;Ir a la subrutina
     btfsc   D1, 0	    ;Saltar instruccion
     call    comp1	    ;Comprobacion del semaforo1
     btfsc   D1, 0	    ;Saltar instruccion
-    movf    sem1, w	    ;Movemos el valor de la variable a w
+    movf    nsem1, w
     btfsc   D1, 1	    ;Saltar instruccion
     movf    sem2, w	    ;Mover sem2 a w
     btfsc   D1, 1	    ;Saltar instruccion
@@ -486,6 +516,8 @@ loop:
     movf    nv1, w	    ;Mover nuevo valor a w
     btfsc   D1, 3	    ;Saltar instruccion
     movf    sem3	    ;Mover sem3 a w
+    btfsc   ama, 0	    ;Saltar instruccion
+    movf    sem1, w	    ;Movemos sem1 a w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -499,7 +531,7 @@ loop:
     btfsc   D1, 0	    ;Saltar instruccion
     movf    sem1, w	    ;Mover sem1 a w
     btfsc   D1, 1	    ;Saltar instruccion
-    movf    sem2, w	    ;Movemos el valor de la variable a w
+    movf    nsem2, w	    ;Movemos el valor de la variable a w
     btfsc   D1, 2	    ;Saltar instruccion
     movf    v1, w	    ;Movemos v1 a w
     btfsc   D1, 2	    ;Saltar instruccion
@@ -510,6 +542,8 @@ loop:
     movf    sem3	    ;Movemos sem3 a w
     btfsc   D1, 3	    ;Saltar instruccion
     addwf   v1		    ;Sumar el valor inicial de la variable 1
+    btfsc   ama, 1	    ;Saltar instruccion
+    movf    sem2, w	    ;Movemos sem2 a w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -527,12 +561,15 @@ loop:
     btfsc   D1, 1	    ;Saltar instruccion
     movf    sem2, w	    ;Mover sem2 a w
     btfsc   D1, 2	    ;Saltar instruccion
-    movf    sem3, w	    ;Mover sem3 a w
+    movf    nsem3, w	    ;Mover sem3 a w
+    btfsc   ama, 2	    ;Saltar instruccion
+    movf    sem3, w	    ;Movemos sem3 a w
     btfsc   of, 4	    ;Saltar instruccion
     movf    nv3, w	    ;Mover nuevo valor 3 a w
     btfsc   D1, 3	    ;Saltar instruccion
     movf    sem3	    ;Mover sem3 a w
     movwf   div		    ;Movemos el valor a la variable div
+   
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
     movwf   dece3	    ;Movemos el valor a dece3
@@ -937,8 +974,8 @@ verdet3:
     return
 
 am3:
-    bcf	    ama,1	;Limpiar y encender banderas
-    bsf	    ama,2
+    bcf	    ama, 1	;Limpiar y encender banderas
+    bsf	    ama, 2
     bcf	    vt,2
     bcf	    vard, 2
     movf    sem3, w	;Comprobar que se termino el tiempo para el reset
@@ -963,6 +1000,22 @@ rst:
     movwf   sem2
     movf    v3, w
     movwf   sem3
+    
+    movf    sem1, w
+    movwf   nsem1
+    movlw   2
+    subwf   nsem1, 1
+    
+    movf    sem2, w
+    movwf   nsem2
+    movlw   2
+    subwf   nsem2, 1
+    
+    movf    sem3, w
+    movwf   nsem3
+    movlw   2
+    subwf   nsem3, 1
+    
     bsf	    D1, 0	;Volver a iniciar en el semaforo1
     bcf	    D1, 1
     bcf	    D1, 2
