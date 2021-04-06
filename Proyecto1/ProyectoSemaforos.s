@@ -312,8 +312,8 @@ int_tmr1:
     bcf	    YN, 0
     btfsc   YN, 0
     goto    BDOWN
-    btfsc   of, 4
-    call    reseteo
+;    btfsc   of, 4
+;    call    reseteo
     movf    sem1, w
     sublw   0
     btfss   CARRY		;Si la resta da 0 saltar la instrucción 
@@ -348,11 +348,12 @@ Sem2:
     
 Sem3:
     movf    sem3, w		;Mover la variable del contador a w
-    sublw   0
-    btfss   CARRY
+    btfsc   ZERO
+    goto    reseteo
     decf    sem3
     bcf	    D1, 1
     bsf	    D1, 2
+    
     retfie
 reseteo:
     bsf	    D1, 0
