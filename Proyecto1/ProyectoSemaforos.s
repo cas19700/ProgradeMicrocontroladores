@@ -308,6 +308,7 @@ int_tmr1:
     btfsc   CARRY		;Si esta en 1 saltar la instrucción de abajo
     return
     clrf    vartmr1		;Limpiar la variable 
+    bcf	    D1, 3
     btfsc   YN, 3
     bcf	    YN, 0
     btfsc   YN, 0
@@ -328,37 +329,38 @@ Sem2o3:
     goto    Sem3
   
 Sem1:
+    
     bcf	    of, 4
     movf    sem1, w		;Mover la variable del contador a w
-    sublw   0
-    btfss   CARRY		;Si la resta da 0 saltar la instrucción 
+    btfss   ZERO		;Si la resta da 0 saltar la instrucción 
     decf    sem1		;Decrementar la variable del contador
     bsf	    D1, 0
-    bcf	    D1, 1
+    bcf	    D1, 2
     retfie
     
 Sem2:
     movf    sem2, w		;Mover la variable del contador a w
-    sublw   0
-    btfss   CARRY
+    btfss   ZERO
     decf    sem2
     bcf	    D1, 0
     bsf	    D1, 1
     retfie
     
 Sem3:
-    movf    sem3, w		;Mover la variable del contador a w
+    decf    sem3
+    movf    sem3, w
+    sublw   255
     btfsc   ZERO
     goto    reseteo
-    decf    sem3
     bcf	    D1, 1
     bsf	    D1, 2
-    
     retfie
+    
 reseteo:
+    incf    sem3
+    bsf	    D1, 3
     bsf	    D1, 0
     bcf	    D1, 1
-    bcf	    D1, 2
     goto    pop
 BDOWN:
     bcf	    PORTA, 1
@@ -485,6 +487,8 @@ loop:
     movf    sem3, w
     btfsc   of, 4
     movf    nv1, w
+    btfsc   D1, 3
+    movf    sem3
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -505,6 +509,10 @@ loop:
     addwf   sem3, w
     btfsc   of, 4
     movf    nv2, w
+    btfsc   D1, 3
+    movf    sem3
+    btfsc   D1, 3
+    addwf   v1
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -525,6 +533,8 @@ loop:
     movf    sem3, w
     btfsc   of, 4
     movf    nv3, w
+    btfsc   D1, 3
+    movf    sem3
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -558,6 +568,8 @@ loop:
     call    LEDR
     btfss   YN, 3
     call    v123 
+    btfsc   D1, 3
+    call    rst
     
     
 ;revisar estado
@@ -933,8 +945,8 @@ am3:
     bcf	    vt,2
     bcf	    vard, 2
     movf    sem3, w
-    sublw   0
-    btfsc   CARRY
+    sublw   255
+    btfsc   ZERO
     call    rst
     return
 rst:
@@ -957,6 +969,8 @@ rst:
     bsf	    D1, 0
     bcf	    D1, 1
     bcf	    D1, 2
+    btfsc   D1, 3
+    bcf	    D1, 3
     return
 Yes:
     movf    nv1, w
