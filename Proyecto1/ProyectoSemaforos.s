@@ -308,24 +308,12 @@ int_tmr1:
     btfsc   CARRY		;Si esta en 1 saltar la instrucción de abajo
     return
     clrf    vartmr1		;Limpiar la variable 
+    btfsc   YN, 3
+    bcf	    YN, 0
+    btfsc   YN, 0
+    goto    BDOWN
     btfsc   of, 4
-    movf    v1, w
-    btfsc   of, 4
-    movwf   sem1
-    btfsc   of, 4
-    movf    v2, w
-    btfsc   of, 4
-    movwf   sem2
-    btfsc   of, 4
-    movf    v3, w
-    btfsc   of, 4
-    movwf   sem3
-    btfsc   of, 4
-    bsf	    D1, 0
-    btfsc   of, 4
-    bcf	    D1, 1
-    btfsc   of, 4
-    bcf	    D1, 2
+    call    reseteo
     movf    sem1, w
     sublw   0
     btfss   CARRY		;Si la resta da 0 saltar la instrucción 
@@ -366,7 +354,24 @@ Sem3:
     bcf	    D1, 1
     bsf	    D1, 2
     retfie
-   
+reseteo:
+    bsf	    D1, 0
+    bcf	    D1, 1
+    bcf	    D1, 2
+    goto    pop
+BDOWN:
+    bcf	    PORTA, 1
+    bcf	    PORTA, 2
+    bcf	    PORTA, 4
+    bcf	    PORTA, 5
+    bcf	    PORTA, 7
+    bcf	    PORTB, 3
+    bsf	    PORTA, 0
+    bsf	    PORTA, 3
+    bsf	    PORTA, 6
+    bsf	    YN, 3
+    goto    pop
+    
 PSECT code, delta=2, abs
 ORG 100h		    ; Posicion para el código
 Tabla:
@@ -465,7 +470,8 @@ main:
 loop:
 ;Ejecutar independientemente del estado en que se encuentra 
     call    pp_display	    ;Llamamos a preparar display
-    call    v123  
+    btfsc   YN, 3
+    call    r_ama 
     btfsc   D1, 0
     call    comp1
     btfsc   D1, 0
@@ -477,7 +483,7 @@ loop:
     btfsc   D1, 2
     movf    sem3, w
     btfsc   of, 4
-    movf    sem1, w
+    movf    nv1, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -496,6 +502,8 @@ loop:
     movf    v1, w
     btfsc   D1, 2
     addwf   sem3, w
+    btfsc   of, 4
+    movf    nv2, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -515,7 +523,7 @@ loop:
     btfsc   D1, 2
     movf    sem3, w
     btfsc   of, 4
-    movf    sem3, w
+    movf    nv3, w
     movwf   div		    ;Movemos el valor a la variable div
     call    div_10	    ;Llamamos la division por 10
     movf    dece, w	    ;Movemos la decena a w
@@ -545,6 +553,10 @@ loop:
     call    Yes
     btfsc   YN, 1
     call    No
+    btfsc   YN, 3
+    call    LEDR
+    btfss   YN, 3
+    call    v123 
     
     
 ;revisar estado
@@ -819,13 +831,16 @@ delay_small:
     goto    $-1		    ;ejecutar la linea anterior
     return   
 comp1:
+    btfss   YN, 0
+    call    compr1
+    return
+compr1:
+    bcf	    YN, 3
     movf    sem1, w
     sublw   5
     btfsc   CARRY
     goto    verdet1
     bcf	    ama, 2
-    bcf	    ama, 1
-    bcf	    ama, 0
     bcf	    vt,0
     bcf	    vt,1
     bcf	    vt,2
@@ -853,6 +868,10 @@ am1:
     bcf	    vard, 0
     return 
 comp2:
+    btfss   YN, 0
+    call    compr2
+    return
+compr2:
     movf    sem2, w
     sublw   5
     btfsc   CARRY
@@ -881,10 +900,16 @@ am2:
     return
     
 comp3:
+    btfss   YN, 0
+    call    compr3
+    return   
+compr3:
     movf    sem3, w
     sublw   5
     btfsc   CARRY
     goto    verdet3
+    btfsc   of, 4
+    return
     bcf	    ama, 1
     bcf	    PORTA, 5
     bcf	    PORTA, 6
@@ -912,7 +937,20 @@ am3:
     call    rst
     return
 rst:
+    
     bsf	    of, 4
+    bcf	    ama,0
+    bcf	    ama,1
+    bcf	    ama,2
+    bcf	    PORTA, 1
+    bcf	    PORTA, 2
+    bcf	    PORTA, 4
+    bcf	    PORTA, 5
+    bcf	    PORTA, 7
+    bcf	    PORTB, 3
+    bsf	    D1, 0
+    bcf	    D1, 1
+    bcf	    D1, 2
     return
 Yes:
     movf    nv1, w
@@ -921,10 +959,21 @@ Yes:
     movwf   v2
     movwf   nv3, w
     movwf   v3
-;    call    rstsem
     call    rst
-    bcf	    YN, 0
     return
+;    
+;rst2:
+;    bcf	    PORTA, 1
+;    bcf	    PORTA, 2
+;    bcf	    PORTA, 4
+;    bcf	    PORTA, 5
+;    bcf	    PORTA, 7
+;    bcf	    PORTB, 3
+;    bsf	    D1, 0
+;    bcf	    D1, 1
+;    bcf	    D1, 2
+;    return
+    
 No:
     movlw   0x0F
     movwf   nv1
@@ -934,10 +983,30 @@ No:
     movwf   nv3
     bcf	    YN, 1
     return
-;rstsem:
-;    call    delay_big
-;    bcf	    PORTA, 0
-;    bcf	    PORTA, 3
-;    bcf	    PORTA, 6
-;    return
+LEDR:
+    bcf	    PORTA, 1
+    bcf	    PORTA, 2
+    bcf	    PORTA, 4
+    bcf	    PORTA, 5
+    bcf	    PORTA, 7
+    bcf	    PORTB, 3
+    movf    v1, w
+    movwf   sem1
+    movf    v2, w
+    movwf   sem2
+    movf    v3, w
+    movwf   sem3
+    return
+r_ama:
+    bcf	    ama, 2
+    bcf	    ama, 1
+    bcf	    ama, 0
+    bcf	    vt, 2
+    bcf	    vt, 1
+    bcf	    vt, 0
+    bcf	    vard, 1
+    bcf	    vard, 0
+    bcf	    vard, 2
+    
+    return
 END
