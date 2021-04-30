@@ -6,7 +6,7 @@
  *Programa:         PWM
  *Hardware:         Potenciometros y servomotores
  *Creado:           27 de abril del 2021
- *Ultima modificacion:	30 de abril del 2021
+ *Ultima modificacion:	29 de abril del 2021
 */
 //******************************************************************************
 //Importaciòn de librerias
@@ -59,7 +59,7 @@
 //******************************************************************************
 //Variables
 //******************************************************************************
-uint8_t    num = 0;     //Variable para el numero
+
 //******************************************************************************
 //Prototipos de Funciones
 //******************************************************************************
@@ -68,14 +68,20 @@ void setup(void);
 void __interrupt() isr(void)
     {    
 	if(PIR1bits.ADIF == 1){
-        PORTB = ADRESH;
-        CCPR1L = (PORTB>>1) + 128;
-        CCP1CONbits.DC1B1 = PORTBbits.RB0;
+        if(ADCON0bits.CHS == 0){
+        CCPR1L = (ADRESH>>1) + 128;         //Valor entre 128 y 250
+        CCP1CONbits.DC1B1 = ADRESH & 0b01;  //bits menos significativos
         CCP1CONbits.DC1B0 = ADRESL>>7;
-        
+        }
+        else{
+        CCPR2L = (ADRESH>>1) + 128;         //Valor entre 128 y 250
+        CCP2CONbits.DC2B1 = ADRESH & 0b01;  //bits menos significativos
+        CCP2CONbits.DC2B0 = ADRESL>>7;
+        }
+        }
         PIR1bits.ADIF = 0;      //Limpiar la bandera de interrupciòn
         }
-    }
+    
 //******************************************************************************
 //Ciclo Principal
 //******************************************************************************
@@ -86,13 +92,13 @@ void main(void){
     ADCON0bits.GO = 1;
     while(1){                //Siempre realizar el ciclo
         if(ADCON0bits.GO == 0){         //Si se apaga el GO entrar al if
-//            if(ADCON0bits.CHS == 0){    //Cambiar de canal
-//                ADCON0bits.CHS = 1;
-//            }
-//            else{                       //Cambiar de canal
-//            ADCON0bits.CHS = 1;
-//            }
-//            __delay_us(50);             //Delay del cambio de canal
+            if(ADCON0bits.CHS == 0){    //Cambiar de canal
+                ADCON0bits.CHS = 1;
+            }
+            else{                       //Cambiar de canal
+            ADCON0bits.CHS = 0;
+            }
+            __delay_us(50);             //Delay del cambio de canal
             ADCON0bits.GO = 1;          //Volver a setear el GO
         }
         }
@@ -103,10 +109,10 @@ void main(void){
 
     void setup(void){
     //  Configuracion de puertos
-    ANSEL = 0b00000001;
+    ANSEL = 0b00000011;
     ANSELH = 0b00000000;
     //  Declaramos puertos como entradas o salidas
-    TRISA = 0x01;
+    TRISA = 0x03;
     TRISC = 0x00;
     TRISD = 0x00;
     TRISB = 0x00;
@@ -132,11 +138,16 @@ void main(void){
     ADCON0bits.ADON = 1;
     //Configuración del PWM
     TRISCbits.TRISC2 = 1;       //CCP1 como entrada para poder configurar
+    TRISCbits.TRISC1 = 1;       //CCP2 como entrada para poder configurar
     PR2 = 250;                  //tmr2 en 2ms 
     CCP1CONbits.P1M = 0;        //Modo Single Output
     CCP1CONbits.CCP1M = 0b00001100; //Activamos el PWM
+    CCP2CONbits.CCP2M = 0b00001100; //Activamos el PWM
     CCPR1L = 0x0f;
+    CCPR2L = 0x0f;
     CCP1CONbits.DC1B = 0;
+    CCP2CONbits.DC2B0 = 0;
+    CCP2CONbits.DC2B1 = 0;
     
     PIR1bits.TMR2IF = 0;
     T2CONbits.T2CKPS = 0b11;    //Prescaler en 1:16
@@ -145,7 +156,8 @@ void main(void){
     while(!PIR1bits.TMR2IF);    //Ciclo del tmr2
     PIR1bits.TMR2IF = 0;
     
-    TRISCbits.TRISC2 = 0;
+    TRISCbits.TRISC2 = 0;       //CCP1 como salida
+    TRISCbits.TRISC1 = 0;       //CCP2 como salida
     
     //Configuracion de interrupciones
     PIR1bits.ADIF = 0;
