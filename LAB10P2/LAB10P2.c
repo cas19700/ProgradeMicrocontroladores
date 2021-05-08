@@ -6,7 +6,7 @@
  *Programa:         EUSART
  *Hardware:         LEDS y Terminal Virtual
  *Creado:           4 de mayo del 2021
- *Ultima modificacion:	9 de mayo del 2021
+ *Ultima modificacion:	7 de mayo del 2021
 */
 //******************************************************************************
 //Importaciòn de librerias
@@ -59,9 +59,17 @@
 //******************************************************************************
 //Variables
 //******************************************************************************
-//const char dato = 64;
-char dato[] = "Hola \r que tal \r 0";
-int band = 1;
+
+char dato[] = "\rBienvenido \r";    //Mensajes a mostrar en la consola
+char menu[] = "\rQue accion desea ejecutar? \r"; 
+char menu1[]= "(1) Desplegar cadena de caracteres \r"; 
+char menu2[]= "(2) Cambiar PORTA \r";
+char menu3[]= "(3) Cambiar PORTB \r";
+char nd1[]= "\r Introduzca el nuevo dato para el puerto A \r";
+char nd2[]= "\r Introduzca el nuevo dato para el puerto B \r";
+int op = 0;                         //Variable de operacion
+int band = 0;                       //Bandera para elegir opcion
+               
 //******************************************************************************
 //Prototipos de Funciones
 //******************************************************************************
@@ -71,8 +79,34 @@ void setup(void);
 void __interrupt() isr(void)
     {    
 	if(PIR1bits.RCIF == 1){
+        if(op == 1){            //Si estamos en la opcion 2
+            PORTA = RCREG;      //Mover valor al puerto A y limmpiar banderas
+            band = 0;
+            op = 0;
+            letras(menu);       //Mostrar menu
+            letras(menu1);
+            letras(menu2);
+            letras(menu3);
+        }
+        else if(op == 2){       //Si estamos en la opcion 3
+            PORTB = RCREG;      //Mover valor al puerto B y limpiar banderas
+            band = 0;
+            op = 0;
+            letras(menu);       //Mostrar menu
+            letras(menu1);
+            letras(menu2);
+            letras(menu3);
+        }
         
-        PORTB = RCREG;    
+        else if(RCREG == '1'){  //Dependiendo la opcion levantar una bandera
+           band = 1;
+        }
+        else if(RCREG == '2'){
+            band = 2;    
+        }
+        else if(RCREG == '3'){
+            band = 3;
+        }
         
     }
     return;
@@ -84,15 +118,34 @@ void __interrupt() isr(void)
     
 void main(void){
     setup();                //Llamar las configutaciones
-                    //Siempre realizar el ciclo
-        
-        __delay_ms(500); 
-        letras(dato);
-        
-        //if (PIR1bits.TXIF){
-        //    TXREG = dato;
-        //}
-        while(1){
+        __delay_ms(500);    //Delay y desplegar menu
+        letras(menu);
+        letras(menu1);
+        letras(menu2);
+        letras(menu3);
+        while(1){                   //Siempre realizar el ciclo
+            if(op == 1 || op == 2){ //Si se esta en la opcion 2 o 3 no  
+            }                       //hacer nada
+            else if(band == 1){     //En opcion 1 desplegar cadena de caracteres
+            letras(dato);
+            letras(menu);           //Mostrar menu y limpiar bandera
+            letras(menu1);
+            letras(menu2);
+            letras(menu3);
+            band = 0;
+            }
+            else if(band == 2){     //Desplegar mensaje y levantar bandera
+            letras(nd1);            //de opcion 2 elegida
+            op = 1;
+            
+            }
+            else if(band == 3){     //Desplegar mensaje y levantar bandera
+            letras(nd2);            //de opcion 3 elegida
+            op = 2;
+            
+            }
+            else{                   //Cualquier otro caso no hacer nada
+            }
        }
     }
 
@@ -143,15 +196,15 @@ void main(void){
 //******************************************************************************   
    void letras(char letra[]){
         int i = 0;
-        while (letra[i] != '0'){
-        ubicacion(letra[i]);
+        while (letra[i] != '\0'){       //Leer el array hasta encontrar un \0
+        ubicacion(letra[i]);            //Llamar funcion de ubicacion del array
         i++;
         
      }
         return;
     }
    void ubicacion(char ubic){
-       while(TXIF == 0);
-       TXREG = ubic;
-       return;
+       while(TXIF == 0);                //Mientras TXIF este en 0
+       TXREG = ubic;                    //TXREG va a ser igual a la ubicacion
+       return;                          //del array
    }
