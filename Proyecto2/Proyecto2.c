@@ -3,9 +3,9 @@
  *Dispositivo:	    PIC16F887
  *Autor:            Brayan Castillo
  *Compilador:	    XC8
- *Programa:         PWM
- *Hardware:         Potenciometros y servomotores
- *Creado:           27 de abril del 2021
+ *Programa:         Animatronic Face
+ *Hardware:         Servos, motor DC, push button y LEDS
+ *Creado:           16 de mayo del 2021
  *Ultima modificacion:	4 de junio del 2021
 */
 //******************************************************************************
@@ -60,7 +60,7 @@
 //Variables
 //******************************************************************************
 uint8_t    num = 0;     //Variable para el numero
-uint8_t    num1 = 0;     //Variable para el numero
+uint8_t    num1 = 0;     //Variable para el numero1
 uint8_t    band = 0;    //Variable banderas para el display
 uint8_t    band1 = 0;    //Variable banderas para el display
 //******************************************************************************
@@ -74,23 +74,22 @@ void __interrupt() isr(void)
 	if(PIR1bits.ADIF == 1){
         switch(ADCON0bits.CHS){
             case 0:
-        CCPR1L = ADRESH ;         //Valor entre 128 y 250
-        CCP1CONbits.DC1B1 = ADRESH;  //bits menos significativos
+        CCPR1L = ADRESH ;               //Valor del ADC a PWM
+        CCP1CONbits.DC1B1 = ADRESH;     //bits menos significativos
         CCP1CONbits.DC1B0 = ADRESL>>7;
         PIR1bits.ADIF = 0;
         break;
         
             case 1:
-        CCPR2L = (ADRESH>>1) + 128;         //Valor entre 128 y 250
+        CCPR2L = (ADRESH>>1) + 128;         //Valor del ADC al PWM
         CCP2CONbits.DC2B1 = ADRESH & 0b01;  //bits menos significativos
         CCP2CONbits.DC2B0 = ADRESL>>7;
         PIR1bits.ADIF = 0;
         break;
         
             case 2:
-        num = (ADRESH>>1) + 128;         //Valor entre 128 y 250
+        num = (ADRESH>>1) + 128;         //Valor del ADC a la variable del tmr
         num1 = ADRESH;
-        //PORTD = ADRESH;
         PIR1bits.ADIF = 0;
         break;
         }
@@ -106,9 +105,9 @@ void __interrupt() isr(void)
         PORTDbits.RD3 = 0;
         band1 = 0;
         }
-        INTCONbits.T0IF = 0;
+        INTCONbits.T0IF = 0;        //Limpiar la bandera de interrupciòn
     }
-              //Limpiar la bandera de interrupciòn
+              
         }
     
 //******************************************************************************
@@ -119,7 +118,7 @@ void main(void){
     setup();                //Llamar las configutaciones
     __delay_us(50); 
     ADCON0bits.GO = 1;
-    while(1){                //Siempre realizar el ciclo
+    while(1){                           //Siempre realizar el ciclo
         if(ADCON0bits.GO == 0){         //Si se apaga el GO entrar al if
             switch (ADCON0bits.CHS){    //Cambiar de canal
                 case 0:
@@ -138,7 +137,7 @@ void main(void){
             __delay_us(50);             //Delay del cambio de canal
             ADCON0bits.GO = 1;          //Volver a setear el GO
         }
-        PORTBbits.RB5 = 1;
+        PORTBbits.RB5 = 1;              //LEDS de estado
         PORTBbits.RB6 = 1;
         }
     }
