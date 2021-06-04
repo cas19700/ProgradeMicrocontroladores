@@ -1,12 +1,12 @@
 /*
- *Archivo:          LAB09.c
+ *Archivo:          Proyecto2.c
  *Dispositivo:	    PIC16F887
  *Autor:            Brayan Castillo
  *Compilador:	    XC8
  *Programa:         PWM
  *Hardware:         Potenciometros y servomotores
  *Creado:           27 de abril del 2021
- *Ultima modificacion:	29 de abril del 2021
+ *Ultima modificacion:	4 de junio del 2021
 */
 //******************************************************************************
 //Importaciòn de librerias
@@ -63,9 +63,6 @@ uint8_t    num = 0;     //Variable para el numero
 uint8_t    num1 = 0;     //Variable para el numero
 uint8_t    band = 0;    //Variable banderas para el display
 uint8_t    band1 = 0;    //Variable banderas para el display
-uint8_t    cent = 0;    //Variable centenas
-uint8_t    dece = 0;    //Variable decenas
-uint8_t    uni = 0;     //Variable unidades
 //******************************************************************************
 //Prototipos de Funciones
 //******************************************************************************
@@ -141,6 +138,8 @@ void main(void){
             __delay_us(50);             //Delay del cambio de canal
             ADCON0bits.GO = 1;          //Volver a setear el GO
         }
+        PORTBbits.RB5 = 1;
+        PORTBbits.RB6 = 1;
         }
     }
 //******************************************************************************
